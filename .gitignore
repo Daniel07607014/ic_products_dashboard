@@ -216,3 +216,16 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- IC Dashboard project-specific ---
+# Raw / processed data (keep .gitkeep only)
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# Credentials & runtime config
+.env
+config/auth_config.yaml
+deploy/nginx/certs/*
+!deploy/nginx/certs/.gitkeep

@@ -1,0 +1,24 @@
+# Copy this file to `auth_config.yaml` and replace password hashes.
+# Generate hashes with: python deploy/scripts/hash_password.py
+credentials:
+  usernames:
+    admin:
+      email: admin@company.com
+      name: Administrator
+      password: "$2b$12$REPLACE_WITH_BCRYPT_HASH_FROM_hash_password.py"
+      roles:
+        - admin
+    viewer:
+      email: viewer@company.com
+      name: Read-Only User
+      password: "$2b$12$REPLACE_WITH_BCRYPT_HASH_FROM_hash_password.py"
+      roles:
+        - viewer
+
+cookie:
+  name: ic_dashboard_auth
+  key: CHANGE_ME_LONG_RANDOM_STRING  # or interpolate from env: ${COOKIE_KEY}
+  expiry_days: 7
+
+pre-authorized:
+  emails: []

@@ -1,0 +1,36 @@
+# --- Core dashboard ---
+streamlit>=1.36
+
+# --- Authentication ---
+streamlit-authenticator>=0.3.2
+bcrypt>=4.1
+PyYAML>=6.0
+
+# --- Data manipulation ---
+pandas>=2.2
+numpy>=1.26
+openpyxl>=3.1
+pyarrow>=15.0
+
+# --- Visualization ---
+plotly>=5.22
+
+# --- Statistical analysis ---
+scipy>=1.13
+statsmodels>=0.14
+scikit-learn>=1.5
+
+# --- Config & utilities ---
+python-dotenv>=1.0
+pydantic>=2.7
+
+# --- Sample data generation ---
+Faker>=25.0
+
+# --- (Optional) DB drivers, enable when connecting to a database ---
+# sqlalchemy>=2.0
+# pyodbc>=5.1
+# psycopg2-binary>=2.9
+
+# --- Dev / Testing ---
+pytest>=8.2
