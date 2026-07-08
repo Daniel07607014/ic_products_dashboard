@@ -47,3 +47,26 @@ def abc_analysis(fact: pd.DataFrame, dimension: str = "product_id") -> pd.DataFr
 
     grouped["abc_class"] = grouped["cum_pct"].apply(classify)
     return grouped
+
+
+def concentration_index(fact: pd.DataFrame, dimension: str = "customer_id", metric: str = "revenue_usd") -> float:
+    """Herfindahl-Hirschman Index: sum of squared market shares (0-10000 scale).
+
+    Conventional bands: <1500 diversified, 1500-2500 moderately concentrated,
+    >2500 highly concentrated.
+    """
+    shares = fact.groupby(dimension, dropna=False)[metric].sum()
+    total = shares.sum()
+    if total == 0:
+        return 0.0
+    pct_shares = shares / total * 100
+    return float((pct_shares ** 2).sum())
+
+
+def top_n_share(fact: pd.DataFrame, dimension: str = "customer_id", n: int = 5, metric: str = "revenue_usd") -> float:
+    """Percentage of `metric` contributed by the top N entities in `dimension`."""
+    shares = fact.groupby(dimension, dropna=False)[metric].sum().sort_values(ascending=False)
+    total = shares.sum()
+    if total == 0:
+        return 0.0
+    return float(shares.head(n).sum() / total * 100)

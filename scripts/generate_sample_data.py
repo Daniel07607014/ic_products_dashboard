@@ -41,6 +41,11 @@ FAMILY_TARGET_MARGIN = {
     "Sensor": 0.45,
 }
 
+# Smaller process node = pricier per-die wafer cost (advanced-node capacity is expensive).
+NODE_WAFER_COST_PER_DIE = {130: 0.30, 90: 0.55, 55: 0.90, 40: 1.30, 28: 1.90}
+# Packaging complexity by type (BGA costs more than a simple leadframe DFN/SOP).
+PACKAGE_BASE_COST_USD = {"DFN": 0.04, "SOP": 0.06, "QFN": 0.10, "BGA": 0.22}
+
 TIER_WEIGHTS = {"A": 0.50, "B": 0.35, "C": 0.15}
 TIER_SIZE = {"A": 5, "B": 15, "C": 20}
 
@@ -106,9 +111,17 @@ def generate_costs(products: pd.DataFrame, periods: list[str], rng: np.random.Ge
     rows = []
     for _, prod in products.iterrows():
         launch_date = pd.Timestamp(prod["launch_date"])
-        base_wafer = float(rng.uniform(0.20, 2.50))
-        base_packaging = float(rng.uniform(0.05, 0.60))
-        base_testing = float(rng.uniform(0.03, 0.30))
+        pin_count = int(prod["pin_count"])
+
+        # Different node/package/pin-count specs carry genuinely different BOM
+        # cost, not just noise — mirrors how different "models" price out in
+        # real IC cost sheets.
+        die_variance = float(rng.uniform(0.85, 1.15))
+        base_wafer = NODE_WAFER_COST_PER_DIE[int(prod["process_node"])] * die_variance
+        base_packaging = (
+            PACKAGE_BASE_COST_USD[prod["package_type"]] * (1 + pin_count / 200) * float(rng.uniform(0.9, 1.1))
+        )
+        base_testing = (0.02 + pin_count * 0.0015) * float(rng.uniform(0.9, 1.1))
         base_overhead = float(rng.uniform(0.05, 0.40))
         royalty = float(rng.choice([0.0, 0.0, 0.0, rng.uniform(0.01, 0.15)]))
 
