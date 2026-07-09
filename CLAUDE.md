@@ -23,8 +23,10 @@ plugged in.
 ```
 app/            # UI 層。禁止寫商業邏輯，只 render + 呼叫 src/
   auth/         # 登入與角色權限
-  pages/        # 每個檔 = 一個側邊欄頁 (0_Overview ~ 9_Admin)
+  pages/        # 每個檔 = 一個側邊欄頁 (0_Overview, 1_Performance, 2_Cost, 3_Data)
+                # 頁面本身只做調度：載入資料 → 篩選 → tabs → 呼叫 views/
   components/   # 共用 UI 元件 (filters, kpi_cards, charts, data_loader)
+    views/      # 各子分頁的 render_* 函式 (product/customer/trend/cost/detail/admin)
 src/            # 業務邏輯層。無 Streamlit 依賴，可被 pytest / notebook 直接呼叫
   data/         # 讀 CSV → typed DataFrame (loader.py, schema.py)
   etl/          # 清洗 + join → fact table
@@ -76,12 +78,14 @@ Every analytics function starts from that fact table.
 
 - Users defined in `config/auth_config.yaml` (bcrypt password hashes).
 - Generate a hash: `python deploy/scripts/hash_password.py`.
-- Roles: `admin` (all pages incl. `9_Admin`) and `viewer` (all except admin).
-- Every page top-of-file:
-  ```python
-  require_login()
-  require_role("viewer")   # or "admin"
-  ```
+- Roles: `admin` (all tabs incl. Admin under `3_Data`) and `viewer` (analysis tabs only).
+- **Auth is gated centrally in `app/main.py` via `st.navigation`** — unauthenticated
+  users only see the Login page; the dashboard nav appears after sign-in.
+- Pages therefore skip `require_login()` and just call `require_role("viewer")` (or
+  `"admin"`) at the top for defense-in-depth. Admin-only tabs inside a page use
+  `has_role("admin")` conditionally.
+- `st.set_page_config` lives only in `main.py` — do NOT call it inside page files
+  (Streamlit warns / ignores it when `st.navigation` is active).
 
 ## 部署架構 / Deployment topology
 

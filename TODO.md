@@ -30,19 +30,19 @@
   - Price effect  = Σ (P1 − P0) × Q1
   - Volume effect = Σ (Q1 − Q0) × P0
   - Mix effect    = residual
-- [ ] 在 `3_Trend_Analysis.py` 頁面畫出 PVM 瀑布圖 (Plotly Waterfall)
+- [ ] 在「業績分析 · 趨勢分析」tab (`app/components/views/trend.py`) 畫出 PVM 瀑布圖 (Plotly Waterfall)
 
-### `app/pages/1_Product_Analysis.py`
+### `app/components/views/product.py` (業績分析 · 產品維度)
 - [ ] 加入「單一料號 drill-down」：選一顆 IC → 顯示該產品的
   - 月度價格 vs 成本折線
   - 良率變化
   - Top 客戶清單
 
-### `app/pages/4_Cost_Breakdown.py`
+### `app/components/views/cost.py` (成本與體質)
 - [ ] 加入「售價 vs 成本散布圖」(需要 join 銷售資料，不能只用 costs 表)
 - [ ] 良率影響分析：`gross_margin_pct` 對 `yield_rate` 的散布 + 迴歸線
 
-### `app/pages/9_Admin.py`
+### `app/components/views/admin.py` (資料與管理 · Admin tab)
 - [ ] 在 UI 內直接**新增/停用使用者** (目前僅唯讀顯示)
 - [ ] 修改密碼功能 (呼叫 `authenticator.reset_password`)
 

@@ -7,7 +7,6 @@ import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from app.auth.authenticator import require_login  # noqa: E402
 from app.auth.permissions import require_role  # noqa: E402
 from app.components.charts import revenue_margin_trend, top_products_bar  # noqa: E402
 from app.components.data_loader import get_fact_table  # noqa: E402
@@ -24,8 +23,6 @@ from src.analytics.risk import (  # noqa: E402
 )
 from src.analytics.trend_analysis import monthly_trend  # noqa: E402
 
-st.set_page_config(page_title="Overview", page_icon=":bar_chart:", layout="wide")
-require_login()
 require_role("viewer")
 
 st.title("Overview · 總覽")
