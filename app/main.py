@@ -42,25 +42,35 @@ else:
         icon=":material/dashboard:",
         default=True,
     )
-    performance = st.Page(
-        "pages/1_Performance.py",
-        title="業績分析 / Performance",
+    product = st.Page(
+        "pages/1_Product.py",
+        title="產品分析 / Product",
+        icon=":material/memory:",
+    )
+    customer = st.Page(
+        "pages/2_Customer.py",
+        title="客戶分析 / Customer",
+        icon=":material/handshake:",
+    )
+    trend = st.Page(
+        "pages/3_Trend.py",
+        title="趨勢分析 / Trend",
         icon=":material/trending_up:",
     )
     cost = st.Page(
-        "pages/2_Cost.py",
+        "pages/4_Cost.py",
         title="成本與體質 / Cost",
         icon=":material/paid:",
     )
     data = st.Page(
-        "pages/3_Data.py",
+        "pages/5_Data.py",
         title="資料與管理 / Data",
         icon=":material/search:",
     )
 
     nav: dict[str, list[st.Page]] = {
         "🏠 首頁": [overview],
-        "📊 分析": [performance, cost],
+        "📊 分析": [product, customer, trend, cost],
         "🔎 資料": [data],
     }
     pg = st.navigation(nav)
