@@ -46,6 +46,30 @@ def effective_cost(raw_cost: float | pd.Series, yield_rate: float | pd.Series) -
     return raw_cost / yield_rate
 
 
+def iqr_filter(
+    df: pd.DataFrame,
+    value_col: str,
+    group_col: str | None = None,
+    k: float = 1.5,
+) -> pd.DataFrame:
+    """Drop rows outside the Tukey fence (Q1 - k*IQR, Q3 + k*IQR).
+
+    With `group_col`, fences are computed per group — an outlier for a
+    tight-margin family may be normal for a volatile one.
+    """
+    def _mask(s: pd.Series) -> pd.Series:
+        q1, q3 = s.quantile(0.25), s.quantile(0.75)
+        iqr = q3 - q1
+        return (s >= q1 - k * iqr) & (s <= q3 + k * iqr)
+
+    if group_col is None:
+        return df.loc[_mask(df[value_col])].copy()
+    keep = df.groupby(group_col, dropna=False)[value_col].transform(
+        lambda s: _mask(s)
+    )
+    return df.loc[keep].copy()
+
+
 def portfolio_kpis(fact: pd.DataFrame) -> dict[str, float]:
     """Return the four KPI numbers used on the Overview page."""
     return {

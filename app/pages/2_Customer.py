@@ -17,7 +17,7 @@ require_role("viewer")
 st.title("客戶分析 · Customer")
 st.caption("誰在賺？大客戶跟小客戶的毛利率差多少？")
 
-fact = sidebar_filters(get_fact_table())
+fact = sidebar_filters(get_fact_table(), show=("date", "tier"))
 if fact.empty:
     st.warning("目前篩選條件下沒有資料 / No data under current filters.")
     st.stop()

@@ -27,7 +27,7 @@ require_role("viewer")
 
 st.title("Overview · 總覽")
 
-fact = sidebar_filters(get_fact_table())
+fact = sidebar_filters(get_fact_table(), show=("date",))
 
 if fact.empty:
     st.warning("目前篩選條件下沒有資料 / No data under current filters.")

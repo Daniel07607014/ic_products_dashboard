@@ -5,7 +5,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-from config.settings import CUSTOMER_TIERS, PRODUCT_FAMILIES
+from config.settings import PRODUCT_FAMILIES
 
 # Fixed color assignments so the same entity is the same color on every chart.
 # Values come from the dataviz-validated categorical palette (slots 1-5, fixed
@@ -13,13 +13,21 @@ from config.settings import CUSTOMER_TIERS, PRODUCT_FAMILIES
 _FAMILY_SLOTS = ("#2a78d6", "#1baf7a", "#eda100", "#008300", "#4a3aa7")
 FAMILY_COLORS: dict[str, str] = dict(zip(PRODUCT_FAMILIES, _FAMILY_SLOTS))
 
-# Tiers are ordered (A = biggest customers), so one blue hue dark->light
-# (validated ordinal ramp) instead of unrelated hues.
-_TIER_STEPS = ("#1c5cab", "#3987e5", "#86b6ef")
-TIER_COLORS: dict[str, str] = dict(zip(CUSTOMER_TIERS, _TIER_STEPS))
+# Status colors (good/warning/critical) — tiers are colored by margin
+# performance rank, not identity: best margin = green, middle = yellow,
+# worst = red. See tier_performance_colors().
+_PERFORMANCE_STEPS = ("#0ca30c", "#fab219", "#d03b3b")
 
 # Status red for threshold lines — reserved, never used as a series color.
 CRITICAL_COLOR = "#d03b3b"
+
+
+def tier_performance_colors(fact: pd.DataFrame) -> dict[str, str]:
+    """Map each customer tier to green/yellow/red by revenue-weighted margin rank."""
+    grouped = fact.groupby("customer_tier")[["revenue_usd", "gross_profit_usd"]].sum()
+    margin = grouped["gross_profit_usd"] / grouped["revenue_usd"].where(grouped["revenue_usd"] > 0)
+    ranked = margin.sort_values(ascending=False).index.tolist()
+    return {tier: _PERFORMANCE_STEPS[i] for i, tier in enumerate(ranked[: len(_PERFORMANCE_STEPS)])}
 
 
 def revenue_margin_trend(monthly: pd.DataFrame) -> go.Figure:
@@ -95,14 +103,20 @@ def margin_histogram_overlay(
         height=420,
     )
     fig.update_traces(opacity=1.0 if facet else 0.55)
-    fig.update_layout(
-        xaxis_title="Gross Margin %",
-        yaxis_title="占比 % / Share of group",
-        legend=dict(orientation="h", y=1.12),
-    )
     if facet:
-        # "group_col=value" annotations -> just the value
-        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+        # Panels are self-labelling: each x-title carries the group name, so
+        # the legend and the "group_col=value" strip annotations are noise.
+        fig.update_layout(showlegend=False, yaxis_title="占比 % / Share of group")
+        fig.layout.annotations = ()
+        for i, group in enumerate(order):
+            axis = "xaxis" if i == 0 else f"xaxis{i + 1}"
+            fig.layout[axis].title.text = f"{group} Gross Margin %"
+    else:
+        fig.update_layout(
+            xaxis_title="Gross Margin %",
+            yaxis_title="占比 % / Share of group",
+            legend=dict(orientation="h", y=1.12),
+        )
     return fig
 
 

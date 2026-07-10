@@ -49,21 +49,36 @@
 
 ## 三、部署上線
 
-- [ ] 產生 SSL 憑證
-  - **開發用 self-signed**：
-    ```bash
-    openssl req -x509 -newkey rsa:2048 -nodes -days 365 \
-        -keyout deploy/nginx/certs/privkey.pem \
-        -out    deploy/nginx/certs/fullchain.pem \
-        -subj "/CN=localhost"
-    ```
-  - **正式用**：向公司 CA 或 Let's Encrypt 申請，放到同一位置
-- [ ] `docker compose build` 確認可 build
-- [ ] `docker compose up -d` 啟動整組服務
-- [ ] 驗證 `curl -k https://localhost/_stcore/health` 回 200
+- [x] 產生 SSL 憑證（2026-07-10，開發用 self-signed 已放 `deploy/nginx/certs/`；
+  對外網址走 Tailscale 的受信任憑證，見下方，nginx 這張只做內層加密）
+- [x] `docker compose build` 確認可 build（2026-07-10，CI 也會在每次上 tag 時 build）
+- [x] `docker compose up -d` 啟動整組服務（2026-07-10，db + app + nginx + watchtower 全部 healthy）
+- [x] 驗證 `curl -k https://localhost/_stcore/health` 回 200（2026-07-10）
 - [ ] 瀏覽器打開 `https://<主機IP>/` 測試登入 + WebSocket 即時互動
 - [ ] 檢查 Nginx access log 有 `101 Switching Protocols` (代表 WS 通了)
-- [ ] 設定容器重啟策略、log 輪替 (docker-compose 已加 `restart: unless-stopped`)
+- [x] 設定容器重啟策略 (docker-compose 已加 `restart: unless-stopped`)；log 輪替未設
+
+### Tailscale 對外 https（網址零警告、不開防火牆、不買網域）
+
+原理：Tailscale 在最外層用受信任憑證處理 TLS，內層 nginx 的 self-signed 憑證
+瀏覽器永遠看不到，Docker 架構完全不用改。
+
+- [ ] 1. 安裝並登入 Tailscale：[tailscale.com/download](https://tailscale.com/download)
+  裝 Windows 版，用 Google/GitHub 帳號登入（免費方案即可）
+- [ ] 2. 開啟 HTTPS 憑證（一次性）：[login.tailscale.com](https://login.tailscale.com)
+  → DNS 頁 → 確認 **MagicDNS** 開啟 → 點 **Enable HTTPS Certificates**
+  （此頁會顯示 tailnet 名稱，形如 `tail1234.ts.net`）
+- [ ] 3. 掛上 dashboard（PowerShell）：
+  ```powershell
+  tailscale serve --bg https+insecure://localhost:443
+  ```
+  （`+insecure` = 不驗證內層 nginx 的 self-signed 憑證，這段只在本機內部；
+  `--bg` 常駐、重開機仍在）
+- [ ] 4. 取得網址：`tailscale serve status` → 形如 `https://電腦名.tail1234.ts.net`，
+  憑證由 Tailscale 自動續期
+- [ ] 5. 分享：管理後台 → Users → **Invite users**（免費可邀 3 人），
+  對方裝 Tailscale 接受邀請後用同一網址；未受邀者完全掃不到這台機器
+- [ ] 6. 驗收：開網址應見登入頁顯示 `Version: 1.0.0`、瀏覽器鎖頭無警告
 
 ---
 

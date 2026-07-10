@@ -5,6 +5,7 @@ import streamlit as st
 
 from app.components.charts import FAMILY_COLORS, margin_distribution, margin_histogram_overlay
 from src.analytics.dimension_analysis import by_family, by_process_node, by_product
+from src.analytics.metrics import iqr_filter
 
 
 def render_product(fact: pd.DataFrame) -> None:
@@ -36,16 +37,21 @@ def render_product(fact: pd.DataFrame) -> None:
                 margin_distribution(by_product(shown)), use_container_width=True
             )
         else:
-            nbins = st.slider("直方圖分箱數 / Bins", 10, 60, 30, step=5)
+            # Tukey fence per family: an extreme margin for a volatile family
+            # may be normal for another, so fences are group-wise.
+            cleaned = iqr_filter(shown, "gross_margin_pct", group_col="product_family")
             st.plotly_chart(
                 margin_histogram_overlay(
-                    shown,
+                    cleaned,
                     group_col="product_family",
                     color_map=FAMILY_COLORS,
-                    nbins=nbins,
                     facet=mode.startswith("分面"),
                 ),
                 use_container_width=True,
+            )
+            st.caption(
+                f"已依 IQR 檢定移除 {len(shown) - len(cleaned):,} 筆離群交易 / "
+                f"outliers removed by Tukey fence (1.5×IQR, per family)"
             )
 
     st.markdown("### 明細 / Tables")

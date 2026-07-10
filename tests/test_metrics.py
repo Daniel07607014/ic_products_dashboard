@@ -12,6 +12,7 @@ from src.analytics.metrics import (
     effective_cost,
     gross_margin_pct,
     gross_profit,
+    iqr_filter,
     portfolio_kpis,
     weighted_avg_margin,
 )
@@ -50,6 +51,29 @@ def test_weighted_avg_margin_matches_portfolio() -> None:
     })
     # revenue-weighted: (80 + 90) / (100 + 900) = 17%
     assert weighted_avg_margin(fact) == pytest.approx(17.0)
+
+
+def test_iqr_filter_drops_extreme_value() -> None:
+    df = pd.DataFrame({"v": [10.0, 11.0, 12.0, 11.5, 10.5, 500.0]})
+    result = iqr_filter(df, "v")
+    assert 500.0 not in result["v"].values
+    assert len(result) == 5
+
+
+def test_iqr_filter_keeps_normal_data() -> None:
+    df = pd.DataFrame({"v": [10.0, 11.0, 12.0, 13.0, 14.0]})
+    assert len(iqr_filter(df, "v")) == 5
+
+
+def test_iqr_filter_groupwise_fences() -> None:
+    # 100 is an outlier for group a (tight around 10) but normal for group b.
+    df = pd.DataFrame({
+        "g": ["a"] * 5 + ["b"] * 5,
+        "v": [10.0, 10.5, 11.0, 10.2, 100.0, 90.0, 100.0, 110.0, 95.0, 105.0],
+    })
+    result = iqr_filter(df, "v", group_col="g")
+    assert len(result[result["g"] == "a"]) == 4          # 100 dropped from a
+    assert len(result[result["g"] == "b"]) == 5          # b untouched
 
 
 def test_portfolio_kpis_shape() -> None:

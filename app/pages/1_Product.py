@@ -17,7 +17,7 @@ require_role("viewer")
 st.title("產品分析 · Product")
 st.caption("各系列毛利率長什麼樣？哪些料號在賺錢？")
 
-fact = sidebar_filters(get_fact_table())
+fact = sidebar_filters(get_fact_table(), show=("date", "family"))
 if fact.empty:
     st.warning("目前篩選條件下沒有資料 / No data under current filters.")
     st.stop()
