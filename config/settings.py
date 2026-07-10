@@ -42,3 +42,19 @@ REGIONS: tuple[str, ...] = ("Taiwan", "China", "Japan", "Korea", "US", "Europe")
 COOKIE_KEY: str = os.getenv("COOKIE_KEY", "dev-only-change-me-in-production")
 COOKIE_NAME: str = os.getenv("COOKIE_NAME", "ic_dashboard_auth")
 COOKIE_EXPIRY_DAYS: int = int(os.getenv("COOKIE_EXPIRY_DAYS", "7"))
+
+# "csv" reads data/raw/*.csv + auth_config.yaml; "mysql" reads the database.
+DATA_BACKEND: str = os.getenv("DATA_BACKEND", "csv").lower()
+
+# Baked into the image by CI at tag time (Dockerfile ARG); "dev" when run locally.
+APP_VERSION: str = os.getenv("APP_VERSION", "dev")
+
+DB_HOST: str = os.getenv("DB_HOST", "127.0.0.1")
+DB_PORT: int = int(os.getenv("DB_PORT", "3306"))
+DB_NAME: str = os.getenv("DB_NAME", "ic_dashboard")
+DB_USER: str = os.getenv("DB_USER", "ic_app")
+DB_PASSWORD: str = os.getenv("DB_PASSWORD", "")
+
+
+def database_url() -> str:
+    return f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"

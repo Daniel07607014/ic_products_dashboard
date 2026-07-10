@@ -1,19 +1,25 @@
 # TODO — IC 產品毛利率 Dashboard
 
-本檔是進度帳本：勾選狀態代表事實，完成當輪就要更新（規則見 `docs/claude/maintenance.md`）。
-分成 4 大區塊：**環境啟用** → **功能補完** → **部署上線** → **未來擴充**。
+專案骨架已建立，以下為待完成事項。分成 4 大區塊：**環境啟用** → **功能補完** → **部署上線** → **未來擴充**。
 
 ---
 
-## 一、環境啟用 ✅ 已完成 (2026-07-08)
+## 一、環境啟用 (先做這些才能跑起來)
 
-- [x] 建立 Python 虛擬環境（實際名稱 `ic_venv`，非 `.venv`；跑法見 CLAUDE.md「環境實況」）
-- [x] 安裝套件：`pip install -r requirements.txt`
-- [x] 產生假資料 (寫進 `data/raw/`)：`generate_sample_data.py --seed 42`（已改版：成本隨製程/封裝/腳位連動）
-- [x] 建立第一個 admin 帳號（`config/auth_config.yaml` 已存在）
-- [x] `.env` 已填入隨機 `COOKIE_KEY`（`.env.example` 已刻意刪除，不要重建）
-- [x] 執行單元測試：`pytest tests/`（18 passed，2026-07-08）
-- [ ] 本機啟動測試：`streamlit run app/main.py`（使用者自己跑；harness 內不啟動 server）
+- [ ] 建立 Python 虛擬環境
+  ```bash
+  python -m venv .venv
+  .venv\Scripts\activate           # macOS/Linux: source .venv/bin/activate
+  ```
+- [ ] 安裝套件：`pip install -r requirements.txt`
+- [ ] 產生假資料 (寫進 `data/raw/`)：`python scripts/generate_sample_data.py --seed 42`
+- [ ] 建立第一個 admin 帳號：`python deploy/scripts/init_admin.py --username admin`
+- [ ] 複製 `.env.example` → `.env`，並填入 `COOKIE_KEY`
+  ```bash
+  python -c "import secrets; print(secrets.token_hex(32))"   # 產生長隨機字串
+  ```
+- [ ] 本機啟動測試：`streamlit run app/main.py`
+- [ ] 執行單元測試：`pytest tests/`
 
 ---
 
@@ -37,8 +43,8 @@
 - [ ] 良率影響分析：`gross_margin_pct` 對 `yield_rate` 的散布 + 迴歸線
 
 ### `app/components/views/admin.py` (資料與管理 · Admin tab)
-- [x] 在 UI 內直接**新增/停用使用者**（2026-07-10，mysql backend 時啟用；走 `src/data/users.py`）
-- [x] 修改密碼功能（2026-07-10，改走 users 表 `reset_password`，非 authenticator API）
+- [ ] 在 UI 內直接**新增/停用使用者** (目前僅唯讀顯示)
+- [ ] 修改密碼功能 (呼叫 `authenticator.reset_password`)
 
 ### 資料層
 - [ ] `src/etl/clean.py` — 目前只有 3 個 helper，補：
@@ -69,15 +75,13 @@
 
 ## 四、未來擴充方向
 
-- [x] **接 SQL 資料庫**（2026-07-10 完成 MySQL 版：docker `mysql:8.4` + `scripts/init_db.py`
-  灌假資料 + `users` 權限表；`DATA_BACKEND=csv|mysql` 可切換。之後接真 ERP 時
-  只需把 ERP 匯出灌進同五張表，loader 與上層不用再動）
+- [ ] **接真的 SQL 資料庫** (替代 CSV)
+  - 在 `requirements.txt` 打開 `sqlalchemy` / `pyodbc` / `psycopg2-binary`
+  - 只改 `src/data/loader.py`，UI 與 analytics 完全不動
 - [ ] **SSO 整合** (LDAP / OIDC / Azure AD)
   - 替換 `streamlit-authenticator`，改用 `streamlit-oauth` 或自寫 middleware
 - [ ] **Let's Encrypt 自動續憑** — 加一個 `certbot` sidecar container
-- [x] **CI/CD**（2026-07-10）— `.github/workflows/release.yml`：上 `v*` tag → pytest →
-  build → push `ghcr.io/daniel07607014/ic-dashboard`；主機上 Watchtower 每 5 分鐘
-  自動 pull 新版重開 app 容器（見 docker-compose.yml）
+- [ ] **CI/CD** — GitHub Actions：跑 pytest + build image + push registry
 - [ ] **權限細分** — 目前只有 admin/viewer，可加：
   - `analyst`：可看 + 匯出，不能改設定
   - `product_manager_XXX`：只能看特定產品系列

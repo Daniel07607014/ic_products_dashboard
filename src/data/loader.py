@@ -1,7 +1,12 @@
-"""Read the five raw CSVs into typed pandas DataFrames.
+"""Read the five raw tables into typed pandas DataFrames.
 
 Callers should treat these functions as the single entry point into the data
-layer. If we later switch from CSV to a database, only this module changes.
+layer. Two backends, selected by ``DATA_BACKEND`` in ``.env``:
+
+- ``csv``   — reads ``data/raw/*.csv`` (original behaviour)
+- ``mysql`` — reads the tables loaded by ``scripts/init_db.py``
+
+Both return identically-shaped DataFrames, so nothing above this module cares.
 """
 from __future__ import annotations
 
@@ -9,7 +14,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from config.settings import RAW_FILES
+from config import settings
 from src.data.schema import (
     COST_COLUMNS,
     CUSTOMER_COLUMNS,
@@ -18,6 +23,14 @@ from src.data.schema import (
     PRODUCT_COLUMNS,
     SALES_COLUMNS,
 )
+
+_TABLES = {
+    "products": ("product_master", PRODUCT_COLUMNS, DATE_COLUMNS.get("products")),
+    "customers": ("customer_master", CUSTOMER_COLUMNS, None),
+    "sales": ("sales_transactions", SALES_COLUMNS, DATE_COLUMNS.get("sales")),
+    "costs": ("cost_data", COST_COLUMNS, None),
+    "fx": ("fx_rates", FX_COLUMNS, None),
+}
 
 
 def _read_csv(path: Path, dtypes: dict[str, str], parse_dates: list[str] | None = None) -> pd.DataFrame:
@@ -31,31 +44,46 @@ def _read_csv(path: Path, dtypes: dict[str, str], parse_dates: list[str] | None 
     return df
 
 
-def load_products() -> pd.DataFrame:
-    return _read_csv(RAW_FILES["products"], PRODUCT_COLUMNS, DATE_COLUMNS["products"])
+def _read_mysql(table: str, dtypes: dict[str, str], parse_dates: list[str] | None = None) -> pd.DataFrame:
+    from src.data.db import get_engine  # local import so csv mode needs no sqlalchemy
+
+    df = pd.read_sql_table(table, get_engine(), parse_dates=parse_dates or None)
+    # Coerce to the same dtypes the CSV path produces, so downstream code
+    # sees one shape regardless of backend.
+    for col, dtype in dtypes.items():
+        if col in (parse_dates or []):
+            continue
+        df[col] = df[col].astype(dtype)
+    return df[list(dtypes.keys())]
 
 
-def load_customers() -> pd.DataFrame:
-    return _read_csv(RAW_FILES["customers"], CUSTOMER_COLUMNS)
+def _load(key: str, backend: str | None = None) -> pd.DataFrame:
+    table, dtypes, parse_dates = _TABLES[key]
+    backend = (backend or settings.DATA_BACKEND).lower()
+    if backend == "mysql":
+        return _read_mysql(table, dtypes, parse_dates)
+    return _read_csv(settings.RAW_FILES[key], dtypes, parse_dates)
 
 
-def load_sales() -> pd.DataFrame:
-    return _read_csv(RAW_FILES["sales"], SALES_COLUMNS, DATE_COLUMNS["sales"])
+def load_products(backend: str | None = None) -> pd.DataFrame:
+    return _load("products", backend)
 
 
-def load_costs() -> pd.DataFrame:
-    return _read_csv(RAW_FILES["costs"], COST_COLUMNS)
+def load_customers(backend: str | None = None) -> pd.DataFrame:
+    return _load("customers", backend)
 
 
-def load_fx() -> pd.DataFrame:
-    return _read_csv(RAW_FILES["fx"], FX_COLUMNS)
+def load_sales(backend: str | None = None) -> pd.DataFrame:
+    return _load("sales", backend)
 
 
-def load_all() -> dict[str, pd.DataFrame]:
-    return {
-        "products": load_products(),
-        "customers": load_customers(),
-        "sales": load_sales(),
-        "costs": load_costs(),
-        "fx": load_fx(),
-    }
+def load_costs(backend: str | None = None) -> pd.DataFrame:
+    return _load("costs", backend)
+
+
+def load_fx(backend: str | None = None) -> pd.DataFrame:
+    return _load("fx", backend)
+
+
+def load_all(backend: str | None = None) -> dict[str, pd.DataFrame]:
+    return {key: _load(key, backend) for key in _TABLES}

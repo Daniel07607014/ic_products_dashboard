@@ -1,133 +1,110 @@
 # CLAUDE.md — IC 產品毛利率 Dashboard
 
-This file is loaded automatically by Claude Code. It captures the project's
-conventions and the shortest path to being productive.
+Streamlit dashboard 分析 IC 產品組合的毛利率（產品／客戶／時間／成本結構切片）。
+附合成資料產生器，接真實 ERP 資料前即可運作。
 
-## 專案目標 / What this is
+## Session 開場（先做這個）
 
-A Streamlit dashboard analysing gross margin of an IC product portfolio.
-Slices data by product / customer / time / cost-structure. Ships with a
-synthetic data generator so the app runs even before real ERP data is
-plugged in.
+1. **對現實**：`git log --oneline -5` + `ls app/pages/`。使用者會在 session 之間
+   自己大改 repo（發生過整次頁面重構），任何記憶與文件都可能已過時。
+2. 讀 `TODO.md` 對照專案現況——它是進度帳本，勾選狀態代表事實。
+3. 需要委派、驗證、判斷疑難時，查下方路由表。
+4. **改了架構或慣例，同一輪更新本檔對應行 + TODO.md 勾選**（規則：`docs/claude/maintenance.md`）。
 
-## 技術棧 / Tech stack
+## 路由表 — 制度檔案
 
-- **UI**: Streamlit multi-page app (`app/pages/*.py`)
-- **Auth**: `streamlit-authenticator` (bcrypt + cookie session)
-- **Analytics**: pandas / numpy / plotly (`src/analytics/`)
-- **Deploy**: Docker + docker-compose behind Nginx reverse proxy
-- **Python**: 3.11
-
-## 目錄結構與分層原則
-
-```
-app/            # UI 層。禁止寫商業邏輯，只 render + 呼叫 src/
-  auth/         # 登入與角色權限
-  pages/        # 每個檔 = 一個側邊欄頁 (0_Overview, 1_Performance, 2_Cost, 3_Data)
-                # 頁面本身只做調度：載入資料 → 篩選 → tabs → 呼叫 views/
-  components/   # 共用 UI 元件 (filters, kpi_cards, charts, data_loader)
-    views/      # 各子分頁的 render_* 函式 (product/customer/trend/cost/detail/admin)
-src/            # 業務邏輯層。無 Streamlit 依賴，可被 pytest / notebook 直接呼叫
-  data/         # 讀 CSV → typed DataFrame (loader.py, schema.py)
-  etl/          # 清洗 + join → fact table
-  analytics/    # 純函式：吃 DataFrame → 吐 DataFrame / scalar
-scripts/        # 一次性/CLI 工具 (目前只有 generate_sample_data.py)
-config/         # settings.py + auth_config.yaml
-deploy/         # Dockerfile 已在根目錄；此處放 nginx/ + scripts/
-data/raw/       # 輸入 CSV (git-ignored；用 generate_sample_data.py 產生)
-tests/          # pytest
-```
-
-### 三個必須遵守的邊界
-
-1. **`src/analytics/` 不 import Streamlit。** 一切純函式。要顯示東西，回傳 DataFrame 讓 `app/` 處理。
-2. **金額統一以 USD 儲存 (`revenue_usd`, `unit_cost_usd`…)。** 需要顯示 TWD/JPY 時，在 UI 層透過 `fx_rates` 轉換。
-3. **敏感檔案永不進 git**：`.env`、`config/auth_config.yaml`、`deploy/nginx/certs/*`、`data/raw/*`、`.streamlit/secrets.toml`。都已列入 `.gitignore`。
-
-## 啟動指令 / How to run
-
-```bash
-# 本機開發
-pip install -r requirements.txt
-python scripts/generate_sample_data.py --seed 42
-python deploy/scripts/init_admin.py
-cp .env.example .env    # 填入 COOKIE_KEY
-streamlit run app/main.py
-
-# Docker (Nginx https 反向代理)
-docker compose up -d --build
-```
-
-## 資料規格 / Input schema
-
-Five CSVs under `data/raw/` — schemas defined in `src/data/schema.py`.
-
-| File | Key columns |
+| 情境 | 讀這個 |
 |---|---|
-| `product_master.csv` | product_id, product_family, process_node, package_type, launch_date, product_status |
-| `customer_master.csv` | customer_id, customer_name, customer_tier (A/B/C), industry, country |
-| `sales_transactions.csv` | order_id, order_date, product_id, customer_id, quantity, unit_price_usd, revenue_usd |
-| `cost_data.csv` | product_id, period (YYYY-MM), wafer/packaging/testing/overhead cost, yield_rate, unit_cost_usd |
-| `fx_rates.csv` | period, currency, rate_to_usd |
+| 要派 subagent、選 model、驗證產出 | `docs/claude/dispatch.md` |
+| 不確定該不該升級模型／算不算完成／該不該問使用者 | `docs/claude/judgment.md` |
+| 撰寫委派 prompt（搜尋/實作/重構/研究/審查） | `docs/claude/delegation-templates.md` |
+| 要修改制度檔或 CLAUDE.md 本身 | `docs/claude/maintenance.md` |
+| 想知道 harness 的已知失效模式 | `docs/claude/diagnosis.md` |
+| 接手前因後果、未解地雷 | `docs/claude/letter-to-future-sessions.md` |
 
-`src/etl/join.build_fact_table` merges all five into one per-transaction fact
-table with `cogs_usd`, `gross_profit_usd`, `gross_margin_pct` pre-computed.
-Every analytics function starts from that fact table.
+## 環境實況（2026-07 驗證，與直覺不同處特別注意）
 
-## 認證與權限 / Auth
+- **OS**: Windows 11。Bash tool 是 Git Bash；PowerShell 5.1 沒有 `&&`/`||`。
+- **Python**: 3.13.7（`requirements.txt` 假設 3.11，目前無衝突但升套件時留意）。
+- **venv 叫 `ic_venv`（不是 `.venv`）**。跑任何 Python 一律：
+  ```bash
+  ./ic_venv/Scripts/python.exe scripts/xxx.py
+  ./ic_venv/Scripts/python.exe -m pytest tests/ -q
+  ```
+  不要 activate、不要裸 `python`（那是系統 Python，沒裝套件）。
+- **互動輸入必卡死**：`getpass`/`input()` 類程式（如 `deploy/scripts/init_admin.py`）
+  在 harness 內跑會永遠等不到輸入。改寫非互動臨時腳本放 scratchpad 執行。
+- **終端中文亂碼 ≠ 資料壞掉**（cp950 顯示問題）。用 pandas 讀回驗證，不要重跑。
+- `.env.example` 已刻意刪除，不要重建。`.env`、`config/auth_config.yaml`、`data/raw/*`
+  皆已 gitignore，永不進 git。
+- **資料後端（2026-07-10 起）**：`.env` 的 `DATA_BACKEND=mysql|csv` 切換。
+  mysql = docker 裡的 `mysql:8.4`（`docker compose up -d db`，只綁 127.0.0.1:3306，
+  named volume `mysql-data` 持久化），使用者也存在 DB 的 `users` 表；
+  csv = 舊模式（`data/raw/*.csv` + `auth_config.yaml`），DB 掛掉時的退路。
 
-- Users defined in `config/auth_config.yaml` (bcrypt password hashes).
-- Generate a hash: `python deploy/scripts/hash_password.py`.
-- Roles: `admin` (all tabs incl. Admin under `3_Data`) and `viewer` (analysis tabs only).
-- **Auth is gated centrally in `app/main.py` via `st.navigation`** — unauthenticated
-  users only see the Login page; the dashboard nav appears after sign-in.
-- Pages therefore skip `require_login()` and just call `require_role("viewer")` (or
-  `"admin"`) at the top for defense-in-depth. Admin-only tabs inside a page use
-  `has_role("admin")` conditionally.
-- `st.set_page_config` lives only in `main.py` — do NOT call it inside page files
-  (Streamlit warns / ignores it when `st.navigation` is active).
-
-## 部署架構 / Deployment topology
+## 目錄結構與三個邊界
 
 ```
-Browser ──https──▶ Nginx (443, deploy/nginx/nginx.conf)
-                      │  proxy_pass + WebSocket headers
-                      ▼
-                  app service (Streamlit :8501, internal only)
-                      │  volumes:
-                      │    ./data          → /app/data           (rw)
-                      │    ./config/auth_config.yaml → /app/config/... (ro)
-                      ▼
-                  CSV files under data/raw/
+app/            # UI 層：只 render + 呼叫 src/，禁止商業邏輯
+  main.py       # st.navigation 入口；登入集中在這裡把關
+  pages/        # 0_Overview / 1_Performance / 2_Cost / 3_Data（薄殼，共 4 頁）
+  components/   # filters, kpi_cards, charts, data_loader
+    views/      # 頁面實際內容在這（trend/product/cost/customer/detail/admin）——改 UI 先找這裡
+  auth/         # authenticator.py（登入）+ permissions.py（角色）
+src/            # 業務邏輯層：無 Streamlit 依賴，pytest 可直接測
+  data/         # CSV → typed DataFrame（loader.py, schema.py）
+  etl/          # 清洗 + join → fact table（join.build_fact_table）
+  analytics/    # 純函式：metrics, dimension_analysis, ranking, risk, trend_analysis
+scripts/        # generate_sample_data.py（合成資料）
+config/         # settings.py + auth_config.yaml
+tests/          # pytest（test_metrics / test_ranking / test_risk）
+docs/claude/    # AI session 制度檔（見路由表）
 ```
 
-`app` is not exposed to the host — only `nginx` publishes 80/443.
+1. **`src/` 不 import Streamlit**。要顯示東西，回傳 DataFrame 讓 `app/` 處理。
+2. **金額一律 USD 儲存**（`revenue_usd` 等）。顯示他幣時在 UI 層用 `fx_rates` 轉。
+3. **新公式進 `src/analytics/` + 補 `tests/`；新欄位先改 `src/data/schema.py`**。
 
-## 開發約定 / Conventions
+## 認證（2026-07 重構後）
 
-- **New calculation → `src/analytics/`, not a page file.** Pages assemble; formulas live in analytics.
-- **New raw column → update `src/data/schema.py` first.** Loader will fail loudly if the CSV drifts.
-- **Streamlit caching**: use `@st.cache_data(ttl=...)` in `app/components/data_loader.py` — pages should not cache directly.
-- **Cleaning policy** is centralised in `src/etl/clean.py`. Don't sprinkle `fillna`/`dropna` around pages.
-- **Tests**: add cases to `tests/test_metrics.py` when introducing a new formula. Run with `pytest tests/`.
-- **Comments**: only for the *why*. Well-named columns/functions should explain the *what*.
+- 登入集中在 `app/main.py`：未登入時 `st.navigation` 只露出 Login 頁。
+- 頁面頂部只需 `require_role("viewer")`（或 `"admin"`）——**不要再加 `require_login()`**，
+  那是留給 scripts/notebooks 的 backward-compat。
+- 使用者來源依 `DATA_BACKEND`：mysql = DB 的 `users` 表（bcrypt，
+  `src/data/users.py` 做 CRUD，admin tab 可直接新增/停用/重設密碼）；
+  csv = `config/auth_config.yaml`（唯讀顯示）。Admin 功能不是獨立頁：
+  它是 `3_Data` 頁內用 `has_role("admin")` 條件顯示的 tab，實作在
+  `app/components/views/admin.py`。
 
-## 常用指令 / Common commands
+## 常用指令
 
 ```bash
-pytest tests/                                     # run tests
-python scripts/generate_sample_data.py            # regenerate synthetic data
-python deploy/scripts/hash_password.py            # bcrypt hash for a new user
-streamlit run app/main.py                         # local dashboard
-docker compose up -d --build                      # build + start Docker stack
-docker compose logs -f app                        # tail app logs
-docker compose exec app python scripts/generate_sample_data.py   # regen inside container
+./ic_venv/Scripts/python.exe -m pytest tests/ -q                  # 測試
+./ic_venv/Scripts/python.exe scripts/generate_sample_data.py --seed 42   # 重生假資料 CSV
+docker compose up -d db                                           # 只起 MySQL
+./ic_venv/Scripts/python.exe scripts/init_db.py --migrate-users   # 建表 + CSV 灌入 DB + 搬使用者
+streamlit run app/main.py                                         # 本機啟動（使用者自己跑）
+docker compose up -d --build                                      # Docker 整組（db + app + nginx）
 ```
 
-## 擴充方向 / Future work
+## 發佈 / CI-CD（2026-07-10 起）
 
-- Swap CSV loader for SQL (uncomment `sqlalchemy` / `pyodbc` in `requirements.txt`; only `src/data/loader.py` needs to change).
-- Implement PVM waterfall in `src/analytics/trend_analysis.pvm_decomposition`.
-- Drill-down page: single product cost/price trend, top customers per SKU.
-- SSO integration (LDAP / OIDC) replacing `streamlit-authenticator`.
-- Let's Encrypt auto-renewal for the Nginx SSL certificate (`certbot` sidecar).
+- 上 `v*` tag（`git tag v1.0.0 && git push origin v1.0.0`）→ GitHub Actions 跑
+  pytest → build → 推 `ghcr.io/daniel07607014/ic-dashboard`（`.github/workflows/release.yml`）。
+- 主機上的 Watchtower 容器每 5 分鐘檢查 GHCR，自動 pull 新 image 重開 app 容器。
+- GHCR 映像名必須全小寫——workflow 裡是寫死的，不要改成 `${{ github.repository_owner }}`。
+
+## 資料規格
+
+五個 CSV 在 `data/raw/`，schema 唯一定義處是 `src/data/schema.py`。
+mysql 模式下同樣五張表存在 DB（表名 = csv 檔名去副檔名），由 `scripts/init_db.py`
+從 CSV 灌入；`src/data/loader.py` 兩種 backend 回傳完全相同形狀的 DataFrame。
+`src/etl/join.build_fact_table` 合成單一 fact table（含 `cogs_usd`、`gross_profit_usd`、
+`gross_margin_pct`、`yield_rate`）——所有 analytics 函式都從它出發。
+
+## 開發約定
+
+- 快取只在 `app/components/data_loader.py` 用 `@st.cache_data(ttl=...)`，頁面不自己快取。
+- 清洗政策集中 `src/etl/clean.py`，不要在頁面散落 `fillna`/`dropna`。
+- 註解只寫 *why*，不寫 *what*。
+- 待辦與擴充方向一律看 `TODO.md`，本檔不重複維護。

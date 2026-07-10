@@ -27,8 +27,12 @@ pydantic>=2.7
 # --- Sample data generation ---
 Faker>=25.0
 
-# --- (Optional) DB drivers, enable when connecting to a database ---
-# sqlalchemy>=2.0
+# --- Database (MySQL) ---
+sqlalchemy>=2.0
+pymysql>=1.1
+cryptography>=42          # required by pymysql for MySQL 8 caching_sha2_password auth
+
+# --- (Optional) other DB drivers ---
 # pyodbc>=5.1
 # psycopg2-binary>=2.9
 

@@ -1,21 +1,72 @@
 services:
+  db:
+    image: mysql:8.4
+    container_name: ic-dashboard-db
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Asia/Taipei}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set in .env}
+      MYSQL_DATABASE: ${DB_NAME:-ic_dashboard}
+      MYSQL_USER: ${DB_USER:-ic_app}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    ports:
+      # localhost only, so a dev streamlit run on the host can reach the DB
+      - "127.0.0.1:3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "$${MYSQL_USER}", "-p$${MYSQL_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks:
+      - dashboard-net
+
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ic-dashboard:latest
+    # CI (見 .github/workflows/release.yml) 在每次上 v* tag 後推新版到這個位址；
+    # Watchtower 會自動 pull 並重開本容器。本機開發仍可 docker compose build。
+    image: ghcr.io/daniel07607014/ic-dashboard:latest
     container_name: ic-dashboard-app
     restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
       TZ: ${TZ:-Asia/Taipei}
       COOKIE_KEY: ${COOKIE_KEY:?COOKIE_KEY must be set in .env}
       COOKIE_NAME: ${COOKIE_NAME:-ic_dashboard_auth}
       COOKIE_EXPIRY_DAYS: ${COOKIE_EXPIRY_DAYS:-7}
+      DATA_BACKEND: ${DATA_BACKEND:-mysql}
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_NAME: ${DB_NAME:-ic_dashboard}
+      DB_USER: ${DB_USER:-ic_app}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
     volumes:
       - ./data:/app/data
       - ./config/auth_config.yaml:/app/config/auth_config.yaml:ro
     expose:
       - "8501"
+    networks:
+      - dashboard-net
+
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: ic-dashboard-watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    # 每 300 秒檢查一次 GHCR 有沒有新 image；--cleanup 順手刪舊 image。
+    # 只監控 app 容器，不會動 db / nginx。
+    command: --interval 300 --cleanup ic-dashboard-app
+    # 若 GHCR package 是 private，取消下面註解並在 .env 加 GHCR_USER / GHCR_TOKEN
+    # （PAT 需 read:packages 權限）。package 設 public 則不需要。
+    # environment:
+    #   REPO_USER: ${GHCR_USER}
+    #   REPO_PASS: ${GHCR_TOKEN}
     networks:
       - dashboard-net
 
@@ -37,3 +88,6 @@ services:
 networks:
   dashboard-net:
     driver: bridge
+
+volumes:
+  mysql-data:

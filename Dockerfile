@@ -19,6 +19,10 @@ RUN pip install --prefix=/install -r requirements.txt
 # ---------- runtime ----------
 FROM python:3.11-slim AS runtime
 
+# CI 在上 tag 時傳入 (見 .github/workflows/release.yml)；本機 build 則顯示 dev
+ARG APP_VERSION=dev
+ENV APP_VERSION=${APP_VERSION}
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \

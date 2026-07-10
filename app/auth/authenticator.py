@@ -18,10 +18,17 @@ import streamlit_authenticator as stauth
 import yaml
 from yaml.loader import SafeLoader
 
-from config.settings import AUTH_CONFIG_PATH, COOKIE_EXPIRY_DAYS, COOKIE_KEY, COOKIE_NAME
+from config.settings import (
+    APP_VERSION,
+    AUTH_CONFIG_PATH,
+    COOKIE_EXPIRY_DAYS,
+    COOKIE_KEY,
+    COOKIE_NAME,
+    DATA_BACKEND,
+)
 
 
-def _load_config(path: Path) -> dict:
+def _load_config_yaml(path: Path) -> dict:
     if not path.exists():
         st.error(
             f"Auth config not found at `{path}`. "
@@ -30,6 +37,32 @@ def _load_config(path: Path) -> dict:
         st.stop()
     with path.open("r", encoding="utf-8") as f:
         return yaml.load(f, Loader=SafeLoader)
+
+
+def _load_config_mysql() -> dict:
+    from src.data.users import fetch_active_credentials
+
+    try:
+        credentials = fetch_active_credentials()
+    except Exception as exc:  # surface DB outage as a login-page error, not a stack trace
+        st.error(
+            f"無法連線使用者資料庫 / Cannot reach the user database: {exc}. "
+            "確認 `docker compose up -d db` 已啟動，或將 .env 的 DATA_BACKEND 改回 csv。"
+        )
+        st.stop()
+    if not credentials["usernames"]:
+        st.error(
+            "users 資料表是空的。先執行 "
+            "`python scripts/init_db.py --migrate-users` 建立第一個帳號。"
+        )
+        st.stop()
+    return {"credentials": credentials, "cookie": {}}
+
+
+def _load_config(path: Path) -> dict:
+    if DATA_BACKEND == "mysql":
+        return _load_config_mysql()
+    return _load_config_yaml(path)
 
 
 def get_authenticator() -> stauth.Authenticate:
@@ -74,6 +107,7 @@ def current_user() -> tuple[str, str, list[str]]:
 def render_login() -> None:
     """Standalone login page shown by ``st.navigation`` when unauthenticated."""
     st.title(":bar_chart: IC 產品毛利率 Dashboard")
+    st.caption(f"版本 / Version: `{APP_VERSION}`")
     st.markdown("#### :lock: 登入 / Sign in")
     st.markdown("請輸入帳號密碼進入系統 / Enter your credentials to continue.")
 
@@ -97,6 +131,7 @@ def render_sidebar_user_info() -> None:
     with st.sidebar:
         st.markdown(f"**{name}**  \n`{role}`")
         authenticator.logout("登出 / Logout", location="sidebar")
+        st.caption(f"v{APP_VERSION}")
         st.markdown("---")
 
 
