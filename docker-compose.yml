@@ -62,6 +62,10 @@ services:
     # 每 300 秒檢查一次 GHCR 有沒有新 image；--cleanup 順手刪舊 image。
     # 只監控 app 容器，不會動 db / nginx。
     command: --interval 300 --cleanup ic-dashboard-app
+    environment:
+      # watchtower 內建 client 太舊，不設這個會被新版 Docker 引擎拒絕
+      # ("client version 1.25 is too old")
+      DOCKER_API_VERSION: "1.44"
     # 若 GHCR package 是 private，取消下面註解並在 .env 加 GHCR_USER / GHCR_TOKEN
     # （PAT 需 read:packages 權限）。package 設 public 則不需要。
     # environment:
