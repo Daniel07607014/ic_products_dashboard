@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from app.auth.permissions import has_role, require_role  # noqa: E402
 from app.components.data_loader import get_fact_table  # noqa: E402
-from app.components.filters import sidebar_filters  # noqa: E402
+from app.components.filters import render_filters  # noqa: E402
 from app.components.views.admin import render_admin  # noqa: E402
 from app.components.views.detail import render_detail  # noqa: E402
 
@@ -25,7 +25,7 @@ if show_admin:
 tabs = st.tabs(tab_labels)
 
 with tabs[0]:
-    fact = sidebar_filters(get_fact_table())
+    fact = render_filters(get_fact_table())
     render_detail(fact)
 
 if show_admin:

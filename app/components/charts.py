@@ -161,15 +161,22 @@ def margin_histogram_overlay(
     return fig
 
 
-def family_trend_lines(df: pd.DataFrame, y_col: str, y_title: str) -> go.Figure:
-    """Monthly series, one line per product family, in the fixed family colors."""
+def family_trend_lines(
+    df: pd.DataFrame,
+    y_col: str,
+    y_title: str,
+    group_col: str = "product_family",
+    color_map: dict[str, str] | None = None,
+) -> go.Figure:
+    """Monthly series, one line per group, in fixed per-entity colors."""
+    color_map = color_map or FAMILY_COLORS
     fig = px.line(
         df,
         x="period",
         y=y_col,
-        color="product_family",
-        color_discrete_map=FAMILY_COLORS,
-        category_orders={"product_family": list(FAMILY_COLORS)},
+        color=group_col,
+        color_discrete_map=color_map,
+        category_orders={group_col: list(color_map)},
         markers=True,
         height=420,
     )

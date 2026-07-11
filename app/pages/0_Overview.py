@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 from app.auth.permissions import require_role  # noqa: E402
 from app.components.charts import revenue_margin_trend, top_products_bar  # noqa: E402
 from app.components.data_loader import get_fact_table  # noqa: E402
-from app.components.filters import sidebar_filters  # noqa: E402
+from app.components.filters import render_filters  # noqa: E402
 from app.components.kpi_cards import render_concentration_kpis, render_kpi_row  # noqa: E402
 from src.analytics.dimension_analysis import by_customer, by_product  # noqa: E402
 from src.analytics.metrics import portfolio_kpis  # noqa: E402
@@ -27,7 +27,7 @@ require_role("viewer")
 
 st.title("Overview · 總覽")
 
-fact = sidebar_filters(get_fact_table(), show=("date",))
+fact = render_filters(get_fact_table(), show=("date",))
 
 if fact.empty:
     st.warning("目前篩選條件下沒有資料 / No data under current filters.")

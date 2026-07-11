@@ -1,4 +1,4 @@
-"""Common sidebar filters shared across pages."""
+"""Common in-page filters shared across pages, rendered as one row above the charts."""
 from __future__ import annotations
 
 import pandas as pd
@@ -9,37 +9,45 @@ import streamlit as st
 ALL_FILTERS = ("date", "family", "tier")
 
 
-def sidebar_filters(fact: pd.DataFrame, show: tuple[str, ...] = ALL_FILTERS) -> pd.DataFrame:
-    """Render the requested filters in the sidebar and return the filtered fact table."""
-    st.sidebar.markdown("### 篩選 / Filters")
-
+def render_filters(fact: pd.DataFrame, show: tuple[str, ...] = ALL_FILTERS) -> pd.DataFrame:
+    """Render the requested filters at the top of the page and return the filtered fact table."""
     mask = pd.Series(True, index=fact.index)
 
-    if "date" in show:
-        min_date = fact["order_date"].min()
-        max_date = fact["order_date"].max()
-        date_range = st.sidebar.date_input(
-            "日期區間 / Date range",
-            value=(min_date.date(), max_date.date()),
-            min_value=min_date.date(),
-            max_value=max_date.date(),
-        )
+    cols = st.columns(len(show)) if show else []
+    slots = dict(zip(show, cols))
+
+    if "date" in slots:
+        with slots["date"]:
+            min_date = fact["order_date"].min()
+            max_date = fact["order_date"].max()
+            date_range = st.date_input(
+                "日期區間 / Date range",
+                value=(min_date.date(), max_date.date()),
+                min_value=min_date.date(),
+                max_value=max_date.date(),
+            )
         if isinstance(date_range, tuple) and len(date_range) == 2:
             start, end = date_range
             mask &= (fact["order_date"] >= pd.Timestamp(start)) & (fact["order_date"] <= pd.Timestamp(end))
 
-    if "family" in show:
-        families = sorted(fact["product_family"].dropna().unique().tolist())
-        selected_families = st.sidebar.multiselect(
-            "產品系列 / Product family", families, default=families
-        )
+    if "family" in slots:
+        with slots["family"]:
+            families = sorted(fact["product_family"].dropna().unique().tolist())
+            selected_families = st.multiselect(
+                "產品系列 / Product family", families, default=families
+            )
         mask &= fact["product_family"].isin(selected_families)
 
-    if "tier" in show:
-        tiers = sorted(fact["customer_tier"].dropna().unique().tolist())
-        selected_tiers = st.sidebar.multiselect(
-            "客戶分級 / Customer tier", tiers, default=tiers
-        )
+    if "tier" in slots:
+        with slots["tier"]:
+            tiers = sorted(fact["customer_tier"].dropna().unique().tolist())
+            selected_tiers = st.multiselect(
+                "客戶分級 / Customer tier", tiers, default=tiers
+            )
         mask &= fact["customer_tier"].isin(selected_tiers)
 
     return fact.loc[mask].copy()
+
+
+# Backward-compat alias so older pages keep working during the transition.
+sidebar_filters = render_filters

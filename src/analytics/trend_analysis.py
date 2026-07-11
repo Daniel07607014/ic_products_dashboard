@@ -37,18 +37,26 @@ def monthly_unit_cost_by_family(fact: pd.DataFrame) -> pd.DataFrame:
     ).reset_index(drop=True)
 
 
-def monthly_margin_by_family(fact: pd.DataFrame) -> pd.DataFrame:
-    """Revenue-weighted gross margin % per family per month."""
-    grouped = fact.groupby(["period", "product_family"], dropna=False).agg(
+def _monthly_margin_by(fact: pd.DataFrame, group_col: str) -> pd.DataFrame:
+    """Revenue-weighted gross margin % per group per month."""
+    grouped = fact.groupby(["period", group_col], dropna=False).agg(
         revenue_usd=("revenue_usd", "sum"),
         gross_profit_usd=("gross_profit_usd", "sum"),
     ).reset_index()
     grouped["gross_margin_pct"] = (
         grouped["gross_profit_usd"] / grouped["revenue_usd"].where(grouped["revenue_usd"] > 0) * 100
     ).fillna(0.0)
-    return grouped[["period", "product_family", "gross_margin_pct"]].sort_values(
-        ["period", "product_family"]
+    return grouped[["period", group_col, "gross_margin_pct"]].sort_values(
+        ["period", group_col]
     ).reset_index(drop=True)
+
+
+def monthly_margin_by_family(fact: pd.DataFrame) -> pd.DataFrame:
+    return _monthly_margin_by(fact, "product_family")
+
+
+def monthly_margin_by_tier(fact: pd.DataFrame) -> pd.DataFrame:
+    return _monthly_margin_by(fact, "customer_tier")
 
 
 def add_period_over_period(monthly: pd.DataFrame) -> pd.DataFrame:
