@@ -31,10 +31,8 @@ def render_cost(raw_tables: dict[str, pd.DataFrame]) -> None:
     # Median, not (weighted) mean: cost is right-skewed by a few advanced-node
     # parts, and the question here is "expensive vs peers", not portfolio mix.
     median_cost = float(plot_df["unit_cost_usd"].median())
-    # Label only the bottom-right quadrant (expensive AND low-yield) — the
-    # priority group; everything else is identifiable on hover.
-    in_bad_quadrant = (plot_df["yield_rate"] < 0.90) & (plot_df["unit_cost_usd"] > median_cost)
-    plot_df["label"] = plot_df["product_id"].where(in_bad_quadrant, "")
+    # Every below-the-line part gets a label; healthy parts stay hover-only.
+    plot_df["label"] = plot_df["product_id"].where(plot_df["yield_rate"] < 0.90, "")
     fig = px.scatter(
         plot_df,
         x="unit_cost_usd",
@@ -59,7 +57,7 @@ def render_cost(raw_tables: dict[str, pd.DataFrame]) -> None:
         fillcolor=CRITICAL_COLOR, opacity=0.07, line_width=0, layer="below",
     )
     st.plotly_chart(fig, use_container_width=True)
-    st.caption("右下淡紅區＝成本高於中位數且良率 <90% 的優先改善族群，僅此區標註料號。")
+    st.caption("紅線下方（良率 <90%）皆標註料號；右下淡紅區＝成本又高於中位數的優先改善族群。")
 
     low_yield = latest[latest["yield_rate"] < 0.90].sort_values("yield_rate")
     if not low_yield.empty:

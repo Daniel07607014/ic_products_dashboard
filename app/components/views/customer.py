@@ -28,17 +28,12 @@ def render_customer(fact: pd.DataFrame) -> None:
 
     color_map = tier_performance_colors(fact)
     if mode.startswith("箱型圖"):
-        # Each box point is one customer, so fences apply at customer level.
-        customer_df = by_customer(fact)
-        cleaned_customers = iqr_filter(customer_df, "gross_margin_pct", group_col="customer_tier")
+        # Raw customer-level data — no outlier trimming for box plots.
         st.plotly_chart(
-            margin_distribution(cleaned_customers, group_col="customer_tier", color_map=color_map),
+            margin_distribution(by_customer(fact), group_col="customer_tier", color_map=color_map),
             use_container_width=True,
         )
-        st.caption(
-            f"顏色＝毛利率表現：🟢 最高、🟡 次高、🔴 最低（以營收加權毛利率排名）。"
-            f"已依 IQR 檢定移除 {len(customer_df) - len(cleaned_customers):,} 家離群客戶。"
-        )
+        st.caption("顏色＝毛利率表現：🟢 最高、🟡 次高、🔴 最低（以營收加權毛利率排名）。")
     else:
         cleaned = iqr_filter(fact, "gross_margin_pct", group_col="customer_tier")
         st.plotly_chart(
