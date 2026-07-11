@@ -19,6 +19,38 @@ def monthly_trend(fact: pd.DataFrame) -> pd.DataFrame:
     return monthly
 
 
+def monthly_unit_cost_by_family(fact: pd.DataFrame) -> pd.DataFrame:
+    """Quantity-weighted average unit cost per family per month.
+
+    total COGS / total units, so one big order counts as much as it should —
+    a plain mean over transactions would over-weight small orders.
+    """
+    grouped = fact.groupby(["period", "product_family"], dropna=False).agg(
+        cogs_usd=("cogs_usd", "sum"),
+        quantity=("quantity", "sum"),
+    ).reset_index()
+    grouped["unit_cost_usd"] = (
+        grouped["cogs_usd"] / grouped["quantity"].where(grouped["quantity"] > 0)
+    ).fillna(0.0)
+    return grouped[["period", "product_family", "unit_cost_usd"]].sort_values(
+        ["period", "product_family"]
+    ).reset_index(drop=True)
+
+
+def monthly_margin_by_family(fact: pd.DataFrame) -> pd.DataFrame:
+    """Revenue-weighted gross margin % per family per month."""
+    grouped = fact.groupby(["period", "product_family"], dropna=False).agg(
+        revenue_usd=("revenue_usd", "sum"),
+        gross_profit_usd=("gross_profit_usd", "sum"),
+    ).reset_index()
+    grouped["gross_margin_pct"] = (
+        grouped["gross_profit_usd"] / grouped["revenue_usd"].where(grouped["revenue_usd"] > 0) * 100
+    ).fillna(0.0)
+    return grouped[["period", "product_family", "gross_margin_pct"]].sort_values(
+        ["period", "product_family"]
+    ).reset_index(drop=True)
+
+
 def add_period_over_period(monthly: pd.DataFrame) -> pd.DataFrame:
     """Add MoM / YoY growth columns for revenue and gross profit."""
     out = monthly.copy()

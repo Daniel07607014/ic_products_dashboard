@@ -30,7 +30,12 @@ def tier_performance_colors(fact: pd.DataFrame) -> dict[str, str]:
     return {tier: _PERFORMANCE_STEPS[i] for i, tier in enumerate(ranked[: len(_PERFORMANCE_STEPS)])}
 
 
-def revenue_margin_trend(monthly: pd.DataFrame) -> go.Figure:
+def revenue_margin_trend(monthly: pd.DataFrame, ma_window: int | None = None) -> go.Figure:
+    """Monthly revenue bars + GM% line; optionally overlay rolling means.
+
+    `ma_window` expects the columns produced by
+    :func:`src.analytics.trend_analysis.rolling_avg` (``*_ma{window}``).
+    """
     fig = go.Figure()
     fig.add_bar(x=monthly["period"], y=monthly["revenue_usd"], name="Revenue (USD)")
     fig.add_scatter(
@@ -40,11 +45,47 @@ def revenue_margin_trend(monthly: pd.DataFrame) -> go.Figure:
         yaxis="y2",
         mode="lines+markers",
     )
+    if ma_window:
+        fig.add_scatter(
+            x=monthly["period"],
+            y=monthly[f"revenue_usd_ma{ma_window}"],
+            name=f"Revenue {ma_window}M MA",
+            mode="lines",
+            line=dict(dash="dash", width=2, color="#0b0b0b"),
+        )
+        fig.add_scatter(
+            x=monthly["period"],
+            y=monthly[f"gross_margin_pct_ma{ma_window}"],
+            name=f"GM% {ma_window}M MA",
+            yaxis="y2",
+            mode="lines",
+            line=dict(dash="dot", width=2, color="#52514e"),
+        )
     fig.update_layout(
         yaxis=dict(title="Revenue (USD)"),
         yaxis2=dict(title="Gross Margin %", overlaying="y", side="right", range=[0, 100]),
         legend=dict(orientation="h", y=1.1),
         height=420,
+    )
+    return fig
+
+
+def growth_bars(monthly: pd.DataFrame, col: str, title: str) -> go.Figure:
+    """Period-over-period growth as zero-baseline bars, green up / red down."""
+    values = monthly[col]
+    fig = go.Figure(
+        go.Bar(
+            x=monthly["period"],
+            y=values,
+            marker_color=["#0ca30c" if v >= 0 else "#d03b3b" for v in values.fillna(0)],
+        )
+    )
+    fig.add_hline(y=0, line_color="#c3c2b7")
+    fig.update_layout(
+        yaxis_title=f"{title} %",
+        xaxis_title="月份 / Period",
+        height=380,
+        showlegend=False,
     )
     return fig
 
@@ -117,6 +158,27 @@ def margin_histogram_overlay(
             yaxis_title="占比 % / Share of group",
             legend=dict(orientation="h", y=1.12),
         )
+    return fig
+
+
+def family_trend_lines(df: pd.DataFrame, y_col: str, y_title: str) -> go.Figure:
+    """Monthly series, one line per product family, in the fixed family colors."""
+    fig = px.line(
+        df,
+        x="period",
+        y=y_col,
+        color="product_family",
+        color_discrete_map=FAMILY_COLORS,
+        category_orders={"product_family": list(FAMILY_COLORS)},
+        markers=True,
+        height=420,
+    )
+    fig.update_traces(line_width=2, marker_size=6)
+    fig.update_layout(
+        xaxis_title="月份 / Period",
+        yaxis_title=y_title,
+        legend=dict(orientation="h", y=1.12),
+    )
     return fig
 
 

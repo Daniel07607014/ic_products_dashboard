@@ -91,3 +91,31 @@ def test_portfolio_kpis_shape() -> None:
     }
     assert kpis["active_products"] == 2
     assert kpis["total_revenue_usd"] == 300.0
+
+
+def test_monthly_unit_cost_by_family_is_quantity_weighted() -> None:
+    from src.analytics.trend_analysis import monthly_unit_cost_by_family
+
+    fact = pd.DataFrame({
+        "period": ["2026-01", "2026-01"],
+        "product_family": ["MCU", "MCU"],
+        "cogs_usd": [100.0, 900.0],     # unit costs 1.0 and 3.0
+        "quantity": [100, 300],
+    })
+    result = monthly_unit_cost_by_family(fact)
+    # weighted: (100+900)/(100+300) = 2.5, not the plain mean of 2.0
+    assert result.loc[0, "unit_cost_usd"] == pytest.approx(2.5)
+
+
+def test_monthly_margin_by_family_is_revenue_weighted() -> None:
+    from src.analytics.trend_analysis import monthly_margin_by_family
+
+    fact = pd.DataFrame({
+        "period": ["2026-01", "2026-01"],
+        "product_family": ["MCU", "MCU"],
+        "revenue_usd": [100.0, 900.0],
+        "gross_profit_usd": [80.0, 90.0],   # margins 80% and 10%
+    })
+    result = monthly_margin_by_family(fact)
+    # weighted: (80+90)/(100+900) = 17%, not the plain mean of 45%
+    assert result.loc[0, "gross_margin_pct"] == pytest.approx(17.0)

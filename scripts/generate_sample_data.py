@@ -48,6 +48,9 @@ PACKAGE_BASE_COST_USD = {"DFN": 0.04, "SOP": 0.06, "QFN": 0.10, "BGA": 0.22}
 
 TIER_WEIGHTS = {"A": 0.50, "B": 0.35, "C": 0.15}
 TIER_SIZE = {"A": 5, "B": 15, "C": 20}
+# Strategic (A) accounts carry the best margin, C the worst — so the
+# tier-performance coloring on the Customer page ranks A > B > C.
+TIER_MARGIN_ADJ = {"A": 0.05, "B": 0.0, "C": -0.05}
 
 
 def parse_args() -> argparse.Namespace:
@@ -219,7 +222,7 @@ def generate_sales(
                 quantity = int(max(10, rng.normal(qty_scale, qty_scale * 0.4) * seasonality))
 
                 margin_noise = float(rng.normal(0, 0.05))
-                unit_price = round(unit_cost * (1 + base_margin + margin_noise), 4)
+                unit_price = round(unit_cost * (1 + base_margin + TIER_MARGIN_ADJ[tier] + margin_noise), 4)
                 unit_price = max(unit_price, 0.01)
                 revenue = round(unit_price * quantity, 2)
 

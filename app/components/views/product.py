@@ -33,8 +33,16 @@ def render_product(fact: pd.DataFrame) -> None:
     else:
         shown = fact[fact["product_family"].isin(selected)]
         if mode.startswith("箱型圖"):
+            # Same Tukey-fence policy as the histograms, but at product level
+            # since each box point is one product.
+            product_df = by_product(shown)
+            cleaned_products = iqr_filter(product_df, "gross_margin_pct", group_col="product_family")
             st.plotly_chart(
-                margin_distribution(by_product(shown)), use_container_width=True
+                margin_distribution(cleaned_products), use_container_width=True
+            )
+            st.caption(
+                f"已依 IQR 檢定移除 {len(product_df) - len(cleaned_products):,} 顆離群料號 / "
+                f"outlier products removed (1.5×IQR, per family)"
             )
         else:
             # Tukey fence per family: an extreme margin for a volatile family

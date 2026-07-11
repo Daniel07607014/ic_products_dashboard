@@ -71,23 +71,23 @@ with tab_declining:
     st.dataframe(declining_margin_products(fact), use_container_width=True)
 
 with tab_top_sellers:
-    col_sort, col_n = st.columns([2, 1])
+    SORT_OPTIONS = {
+        "銷量 / Quantity": "quantity",
+        "營收 / Revenue": "revenue_usd",
+        "毛利 / Gross Profit": "gross_profit_usd",
+        "毛利率 / Gross Margin %": "gross_margin_pct",
+    }
+    col_sort, col_n = st.columns([3, 1])
     with col_sort:
-        sort_choice = st.radio("排序依據 / Sort by", ["銷量 / Quantity", "營收 / Revenue"], horizontal=True)
+        sort_choice = st.radio("排序依據 / Sort by", list(SORT_OPTIONS), horizontal=True)
     with col_n:
         top_n = st.slider("顯示前 N 名 / Top N", 5, 50, 10, step=5)
 
-    if sort_choice.startswith("銷量"):
-        sort_col = "quantity"
-        columns = ["product_id", "product_family", "quantity", "orders"]
-    else:
-        sort_col = "revenue_usd"
-        columns = ["product_id", "product_family", "revenue_usd", "gross_profit_usd", "gross_margin_pct"]
-
+    sort_col = SORT_OPTIONS[sort_choice]
     st.dataframe(
         by_product(fact)
         .sort_values(sort_col, ascending=False)
-        .head(top_n)[columns]
+        .head(top_n)[["product_id", "product_family", sort_col]]
         .reset_index(drop=True),
         use_container_width=True,
     )

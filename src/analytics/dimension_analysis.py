@@ -12,7 +12,7 @@ def _agg(fact: pd.DataFrame, by: list[str]) -> pd.DataFrame:
         cogs_usd=("cogs_usd", "sum"),
         gross_profit_usd=("gross_profit_usd", "sum"),
         quantity=("quantity", "sum"),
-        orders=("order_id", "nunique"),
+        order_count=("order_id", "nunique"),
     ).reset_index()
     grouped["gross_margin_pct"] = (
         grouped["gross_profit_usd"] / grouped["revenue_usd"].where(grouped["revenue_usd"] > 0) * 100
