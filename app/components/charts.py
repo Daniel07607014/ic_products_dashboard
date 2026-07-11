@@ -5,7 +5,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-from config.settings import PRODUCT_FAMILIES
+from config.settings import INDUSTRIES, PRODUCT_FAMILIES
 
 # Fixed color assignments so the same entity is the same color on every chart.
 # Values come from the dataviz-validated categorical palette (slots 1-5, fixed
@@ -13,21 +13,37 @@ from config.settings import PRODUCT_FAMILIES
 _FAMILY_SLOTS = ("#2a78d6", "#1baf7a", "#eda100", "#008300", "#4a3aa7")
 FAMILY_COLORS: dict[str, str] = dict(zip(PRODUCT_FAMILIES, _FAMILY_SLOTS))
 
-# Status colors (good/warning/critical) — tiers are colored by margin
-# performance rank, not identity: best margin = green, middle = yellow,
-# worst = red. See tier_performance_colors().
-_PERFORMANCE_STEPS = ("#0ca30c", "#fab219", "#d03b3b")
+# Industries are unordered categories too — first four validated slots,
+# assigned in the fixed settings.INDUSTRIES order.
+INDUSTRY_COLORS: dict[str, str] = dict(zip(INDUSTRIES, _FAMILY_SLOTS[:4]))
 
 # Status red for threshold lines — reserved, never used as a series color.
 CRITICAL_COLOR = "#d03b3b"
 
 
-def tier_performance_colors(fact: pd.DataFrame) -> dict[str, str]:
-    """Map each customer tier to green/yellow/red by revenue-weighted margin rank."""
-    grouped = fact.groupby("customer_tier")[["revenue_usd", "gross_profit_usd"]].sum()
-    margin = grouped["gross_profit_usd"] / grouped["revenue_usd"].where(grouped["revenue_usd"] > 0)
-    ranked = margin.sort_values(ascending=False).index.tolist()
-    return {tier: _PERFORMANCE_STEPS[i] for i, tier in enumerate(ranked[: len(_PERFORMANCE_STEPS)])}
+def customer_pareto_curve(abc_df: pd.DataFrame) -> go.Figure:
+    """Cumulative revenue share, customers ranked biggest-first, with the
+    80% / 95% ABC boundaries."""
+    fig = px.line(
+        abc_df,
+        x="rank",
+        y="cum_pct",
+        markers=True,
+        hover_name="customer_name",
+        hover_data={"revenue_usd": ":,.0f", "abc_class": True, "rank": False},
+        height=420,
+    )
+    fig.update_traces(line_width=2, marker_size=6, line_color="#2a78d6")
+    fig.add_hline(y=80, line_dash="dash", line_color="#898781",
+                  annotation_text="80% (A)", annotation_position="right")
+    fig.add_hline(y=95, line_dash="dash", line_color="#898781",
+                  annotation_text="95% (B)", annotation_position="right")
+    fig.update_layout(
+        xaxis_title="客戶排名（依營收）/ Customer rank by revenue",
+        yaxis_title="累積營收佔比 % / Cumulative revenue share",
+        yaxis_range=[0, 105],
+    )
+    return fig
 
 
 def revenue_margin_trend(monthly: pd.DataFrame, ma_window: int | None = None) -> go.Figure:
@@ -196,5 +212,12 @@ def family_trend_lines(
 
 
 def heatmap(matrix: pd.DataFrame, title: str = "") -> go.Figure:
-    fig = px.imshow(matrix, text_auto=".1f", aspect="auto", height=420, title=title)
+    fig = px.imshow(
+        matrix,
+        text_auto=".1f",
+        aspect="auto",
+        color_continuous_scale="Oranges",  # warm single-hue sequential: light = low, dark = high
+        height=420,
+        title=title,
+    )
     return fig

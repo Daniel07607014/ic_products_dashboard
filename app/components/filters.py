@@ -6,7 +6,7 @@ import streamlit as st
 
 # Which filter widgets a page shows. Pages pass a subset so each page only
 # exposes the dimensions it actually analyses (Overview: date only).
-ALL_FILTERS = ("date", "family", "tier")
+ALL_FILTERS = ("date", "family", "tier", "industry")
 
 
 def render_filters(fact: pd.DataFrame, show: tuple[str, ...] = ALL_FILTERS) -> pd.DataFrame:
@@ -45,6 +45,14 @@ def render_filters(fact: pd.DataFrame, show: tuple[str, ...] = ALL_FILTERS) -> p
                 "客戶分級 / Customer tier", tiers, default=tiers
             )
         mask &= fact["customer_tier"].isin(selected_tiers)
+
+    if "industry" in slots:
+        with slots["industry"]:
+            industries = sorted(fact["industry"].dropna().unique().tolist())
+            selected_industries = st.multiselect(
+                "產業別 / Industry", industries, default=industries
+            )
+        mask &= fact["industry"].isin(selected_industries)
 
     return fact.loc[mask].copy()
 

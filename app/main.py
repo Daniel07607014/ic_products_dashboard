@@ -17,6 +17,7 @@ from app.auth.authenticator import (  # noqa: E402
     render_login,
     render_sidebar_user_info,
 )
+from app.auth.permissions import has_role  # noqa: E402
 
 st.set_page_config(
     page_title="IC 產品毛利率 Dashboard",
@@ -52,6 +53,11 @@ else:
         title="客戶分析 / Customer",
         icon=":material/handshake:",
     )
+    key_accounts = st.Page(
+        "pages/6_Key_Accounts.py",
+        title="重點客戶 / Key Accounts",
+        icon=":material/star:",
+    )
     trend = st.Page(
         "pages/3_Trend.py",
         title="趨勢分析 / Trend",
@@ -62,17 +68,17 @@ else:
         title="成本與體質 / Cost",
         icon=":material/paid:",
     )
-    data = st.Page(
-        "pages/5_Data.py",
-        title="資料與管理 / Data",
-        icon=":material/search:",
-    )
-
     nav: dict[str, list[st.Page]] = {
         "🏠 首頁": [overview],
-        "📊 分析": [product, customer, trend, cost],
-        "🔎 資料": [data],
+        "📊 分析": [product, customer, key_accounts, trend, cost],
     }
+    if has_role("admin"):
+        admin = st.Page(
+            "pages/5_Admin.py",
+            title="權限管理 / Admin",
+            icon=":material/admin_panel_settings:",
+        )
+        nav["⚙️ 管理"] = [admin]
     pg = st.navigation(nav)
 
 pg.run()

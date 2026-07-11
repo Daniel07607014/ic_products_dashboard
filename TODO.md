@@ -108,4 +108,6 @@
 - [ ] 確認實際 ERP 匯出檔的欄位是否與 `src/data/schema.py` 對得起來，不對就更新 schema
 - [ ] 定義各成本項目在公司內部的分攤規則 (目前假資料是隨機的)
 - [ ] 補上實際的產品/客戶主檔到 `data/raw/`
-- [ ] 決定資料更新頻率 (每日 / 每月批次) 與觸發方式
+- [x] 決定資料更新頻率與觸發方式（2026-07-11：每日全量重灌，`scripts/daily_etl.py`，
+  先驗證 CSV schema 再寫 DB、log 在 `logs/etl.log`；排程用 Windows Task Scheduler，
+  註冊指令見腳本 docstring。資料量大到單次載入需數分鐘時改增量）

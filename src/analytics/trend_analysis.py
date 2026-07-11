@@ -55,8 +55,8 @@ def monthly_margin_by_family(fact: pd.DataFrame) -> pd.DataFrame:
     return _monthly_margin_by(fact, "product_family")
 
 
-def monthly_margin_by_tier(fact: pd.DataFrame) -> pd.DataFrame:
-    return _monthly_margin_by(fact, "customer_tier")
+def monthly_margin_by_industry(fact: pd.DataFrame) -> pd.DataFrame:
+    return _monthly_margin_by(fact, "industry")
 
 
 def add_period_over_period(monthly: pd.DataFrame) -> pd.DataFrame:

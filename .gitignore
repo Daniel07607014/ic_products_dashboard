@@ -230,3 +230,4 @@ data/processed/*
 config/auth_config.yaml
 deploy/nginx/certs/*
 !deploy/nginx/certs/.gitkeep
+logs/

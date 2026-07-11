@@ -13,6 +13,7 @@ def _fact(rows: list[dict]) -> pd.DataFrame:
         "product_family": "MCU",
         "customer_name": "Acme",
         "customer_tier": "A",
+        "industry": "Consumer",
         "product_status": "Active",
         "yield_rate": 0.95,
         "cogs_usd": 0.0,

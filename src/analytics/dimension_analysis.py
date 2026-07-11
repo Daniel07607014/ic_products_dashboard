@@ -33,7 +33,8 @@ def by_process_node(fact: pd.DataFrame) -> pd.DataFrame:
 
 
 def by_customer(fact: pd.DataFrame) -> pd.DataFrame:
-    return _agg(fact, ["customer_id", "customer_name", "customer_tier"])
+    # industry is 1:1 with customer, so adding it doesn't change granularity.
+    return _agg(fact, ["customer_id", "customer_name", "customer_tier", "industry"])
 
 
 def by_industry(fact: pd.DataFrame) -> pd.DataFrame:
@@ -44,22 +45,20 @@ def by_region(fact: pd.DataFrame) -> pd.DataFrame:
     return _agg(fact, ["region"])
 
 
-def product_customer_matrix(fact: pd.DataFrame, value: str = "gross_margin_pct") -> pd.DataFrame:
-    """Pivot the fact table into a Product × Customer matrix suitable for a heatmap."""
-    pivot = fact.pivot_table(
-        index="product_family",
-        columns="customer_tier",
-        values="gross_profit_usd" if value != "gross_margin_pct" else None,
-        aggfunc="sum",
-    )
+def product_customer_matrix(
+    fact: pd.DataFrame, value: str = "gross_margin_pct", columns: str = "industry"
+) -> pd.DataFrame:
+    """Pivot the fact table into a family × customer-dimension matrix for a heatmap."""
     if value == "gross_margin_pct":
         revenue = fact.pivot_table(
-            index="product_family", columns="customer_tier",
+            index="product_family", columns=columns,
             values="revenue_usd", aggfunc="sum",
         )
         profit = fact.pivot_table(
-            index="product_family", columns="customer_tier",
+            index="product_family", columns=columns,
             values="gross_profit_usd", aggfunc="sum",
         )
-        pivot = (profit / revenue.where(revenue > 0) * 100).fillna(0.0)
-    return pivot
+        return (profit / revenue.where(revenue > 0) * 100).fillna(0.0)
+    return fact.pivot_table(
+        index="product_family", columns=columns, values=value, aggfunc="sum",
+    )
