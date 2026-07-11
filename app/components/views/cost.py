@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from app.components.charts import CRITICAL_COLOR, FAMILY_COLORS
+from app.components.charts import CRITICAL_COLOR, FAMILY_COLORS, cost_composition_bar
 
 
 def render_cost(raw_tables: dict[str, pd.DataFrame]) -> None:
@@ -21,10 +21,7 @@ def render_cost(raw_tables: dict[str, pd.DataFrame]) -> None:
         ["wafer_cost_usd", "packaging_cost_usd", "testing_cost_usd", "overhead_cost_usd", "royalty_cost_usd"]
     ].mean().reset_index()
     long = family_avg.melt(id_vars="product_family", var_name="cost_type", value_name="usd")
-    st.plotly_chart(
-        px.bar(long, x="product_family", y="usd", color="cost_type", height=420),
-        use_container_width=True,
-    )
+    st.plotly_chart(cost_composition_bar(long), use_container_width=True)
 
     st.markdown("### 良率 vs 單位成本 / Yield vs unit cost")
     plot_df = latest.copy()
@@ -45,6 +42,11 @@ def render_cost(raw_tables: dict[str, pd.DataFrame]) -> None:
         height=460,
     )
     fig.update_traces(textposition="top center", textfont_size=10)
+    fig.update_layout(
+        xaxis_title="單位成本 (USD) / Unit cost",
+        yaxis_title="良率 / Yield rate",
+        legend=dict(orientation="h", y=1.12),
+    )
     # 90% 是良率健康線：線下的產品該優先追良率改善
     fig.add_hline(y=0.90, line_dash="dash", line_color=CRITICAL_COLOR,
                   annotation_text="90%", annotation_position="right")

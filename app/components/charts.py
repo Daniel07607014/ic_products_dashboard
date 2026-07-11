@@ -20,6 +20,39 @@ INDUSTRY_COLORS: dict[str, str] = dict(zip(INDUSTRIES, _FAMILY_SLOTS[:4]))
 # Status red for threshold lines — reserved, never used as a series color.
 CRITICAL_COLOR = "#d03b3b"
 
+# Cost stack components: display names + palette slots (fixed order = stack order).
+COST_TYPES: dict[str, str] = {
+    "wafer_cost_usd": "晶圓 / Wafer",
+    "packaging_cost_usd": "封裝 / Packaging",
+    "testing_cost_usd": "測試 / Testing",
+    "overhead_cost_usd": "製造費用 / Overhead",
+    "royalty_cost_usd": "權利金 / Royalty",
+}
+COST_TYPE_COLORS: dict[str, str] = dict(zip(COST_TYPES.values(), _FAMILY_SLOTS))
+
+
+def cost_composition_bar(family_avg_long: pd.DataFrame) -> go.Figure:
+    """Stacked avg unit-cost composition per family. Expects columns
+    product_family / cost_type (raw column names) / usd."""
+    df = family_avg_long.copy()
+    df["cost_type"] = df["cost_type"].map(COST_TYPES)
+    fig = px.bar(
+        df,
+        x="product_family",
+        y="usd",
+        color="cost_type",
+        color_discrete_map=COST_TYPE_COLORS,
+        category_orders={"cost_type": list(COST_TYPES.values())},
+        height=420,
+    )
+    fig.update_layout(
+        xaxis_title=None,
+        yaxis_title="平均單位成本 (USD) / Avg unit cost",
+        legend_title=None,
+        legend=dict(orientation="h", y=1.12),
+    )
+    return fig
+
 
 def customer_pareto_curve(abc_df: pd.DataFrame) -> go.Figure:
     """Cumulative revenue share, customers ranked biggest-first, with the
@@ -53,13 +86,17 @@ def revenue_margin_trend(monthly: pd.DataFrame, ma_window: int | None = None) ->
     :func:`src.analytics.trend_analysis.rolling_avg` (``*_ma{window}``).
     """
     fig = go.Figure()
-    fig.add_bar(x=monthly["period"], y=monthly["revenue_usd"], name="Revenue (USD)")
+    fig.add_bar(
+        x=monthly["period"], y=monthly["revenue_usd"], name="Revenue (USD)",
+        marker_color="#9ec5f4",  # light sequential step so the GM% line stays dominant
+    )
     fig.add_scatter(
         x=monthly["period"],
         y=monthly["gross_margin_pct"],
         name="Gross Margin %",
         yaxis="y2",
         mode="lines+markers",
+        line=dict(color="#104281", width=2),
     )
     if ma_window:
         fig.add_scatter(
@@ -77,9 +114,11 @@ def revenue_margin_trend(monthly: pd.DataFrame, ma_window: int | None = None) ->
             mode="lines",
             line=dict(dash="dot", width=2, color="#52514e"),
         )
+    # Auto-range the GM% axis: a fixed [0,100] squashed a ~±3pp swing into a
+    # visually flat line, hiding exactly the movement this chart exists to show.
     fig.update_layout(
         yaxis=dict(title="Revenue (USD)"),
-        yaxis2=dict(title="Gross Margin %", overlaying="y", side="right", range=[0, 100]),
+        yaxis2=dict(title="Gross Margin %", overlaying="y", side="right"),
         legend=dict(orientation="h", y=1.1),
         height=420,
     )
@@ -116,6 +155,9 @@ def top_products_bar(top_df: pd.DataFrame, value_col: str = "gross_profit_usd") 
         orientation="h",
         height=420,
     )
+    # px orders categories by trace (= family), which visually clumps bars by
+    # color; a ranking chart must rank, so force order by value.
+    fig.update_layout(yaxis=dict(categoryorder="total ascending"))
     return fig
 
 
@@ -135,7 +177,11 @@ def margin_distribution(
         points=False,
         height=420,
     )
-    fig.update_layout(showlegend=False)
+    fig.update_layout(
+        showlegend=False,
+        yaxis_title="毛利率 % / Gross Margin %",
+        xaxis_title=None,
+    )
     return fig
 
 
