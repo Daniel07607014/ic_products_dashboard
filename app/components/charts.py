@@ -103,14 +103,20 @@ def top_products_bar(top_df: pd.DataFrame, value_col: str = "gross_profit_usd") 
     return fig
 
 
-def margin_distribution(product_df: pd.DataFrame) -> go.Figure:
+def margin_distribution(
+    df: pd.DataFrame,
+    group_col: str = "product_family",
+    color_map: dict[str, str] | None = None,
+) -> go.Figure:
+    color_map = color_map or FAMILY_COLORS
     fig = px.box(
-        product_df,
-        x="product_family",
+        df,
+        x=group_col,
         y="gross_margin_pct",
-        color="product_family",
-        color_discrete_map=FAMILY_COLORS,
-        points="all",
+        color=group_col,
+        color_discrete_map=color_map,
+        category_orders={group_col: list(color_map)},
+        points=False,
         height=420,
     )
     fig.update_layout(showlegend=False)

@@ -11,11 +11,11 @@ from src.analytics.metrics import iqr_filter
 def render_product(fact: pd.DataFrame) -> None:
     st.markdown("### 毛利率分布 / Margin distribution")
 
-    # Which families appear is controlled by the sidebar Product-family
-    # filter — no second in-page selector.
+    # Which families appear is controlled by the page's Product-family
+    # filter — no second in-chart selector.
     mode = st.radio(
         "顯示方式 / Display",
-        ["疊圖直方圖 / Overlay", "分面直方圖 / Facet", "箱型圖 / Box"],
+        ["分面直方圖 / Facet", "箱型圖 / Box"],
         horizontal=True,
         label_visibility="collapsed",
     )
@@ -41,7 +41,7 @@ def render_product(fact: pd.DataFrame) -> None:
                 cleaned,
                 group_col="product_family",
                 color_map=FAMILY_COLORS,
-                facet=mode.startswith("分面"),
+                facet=True,
             ),
             use_container_width=True,
         )
