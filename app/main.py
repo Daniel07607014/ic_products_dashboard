@@ -48,10 +48,10 @@ else:
         title="產品分析 / Product",
         icon=":material/memory:",
     )
-    customer = st.Page(
-        "pages/2_Customer.py",
-        title="客戶分析 / Customer",
-        icon=":material/handshake:",
+    industry = st.Page(
+        "pages/2_Industry.py",
+        title="產業別分析 / Industry",
+        icon=":material/factory:",
     )
     key_accounts = st.Page(
         "pages/6_Key_Accounts.py",
@@ -70,7 +70,7 @@ else:
     )
     nav: dict[str, list[st.Page]] = {
         "🏠 首頁": [overview],
-        "📊 分析": [product, customer, key_accounts, trend, cost],
+        "📊 分析": [product, industry, key_accounts, trend, cost],
     }
     if has_role("admin"):
         admin = st.Page(

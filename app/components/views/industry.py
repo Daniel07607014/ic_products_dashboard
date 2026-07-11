@@ -13,7 +13,7 @@ from src.analytics.dimension_analysis import by_customer, by_industry, product_c
 from src.analytics.metrics import iqr_filter
 
 
-def render_customer(fact: pd.DataFrame) -> None:
+def render_industry(fact: pd.DataFrame) -> None:
     st.markdown("### 毛利率分布（依產業別）/ Margin distribution by industry")
 
     mode = st.radio(

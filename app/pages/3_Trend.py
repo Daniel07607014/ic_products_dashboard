@@ -17,7 +17,7 @@ require_role("viewer")
 st.title("趨勢分析 · Trend")
 st.caption("什麼時候賺？動能在往上還是往下？")
 
-fact = render_filters(get_fact_table())
+fact = render_filters(get_fact_table(), show=("date", "family", "industry"))
 if fact.empty:
     st.warning("目前篩選條件下沒有資料 / No data under current filters.")
     st.stop()
