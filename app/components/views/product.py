@@ -50,12 +50,27 @@ def render_product(fact: pd.DataFrame) -> None:
     )
 
     with tab_family:
+        st.caption(
+            "**看什麼**：產品組合的體質。哪個系列是營收主力（revenue_usd 最大）、"
+            "哪個是毛利率優等生（gross_margin_pct 最高）——兩者通常不是同一個。"
+            "「量大毛利低」的系列扛規模、「量小毛利高」的系列扛獲利，組合失衡就是警訊。"
+        )
         st.dataframe(by_family(fact), use_container_width=True)
 
     with tab_node:
+        st.caption(
+            "**看什麼**：製程世代的獲利結構。成熟製程（130/90nm）成本低但單價也低、"
+            "先進製程（28/40nm）成本高但應該賺更多——如果先進製程的毛利率反而更差，"
+            "代表定價沒把成本轉嫁出去，是產品定價策略的檢查點。"
+        )
         st.dataframe(by_process_node(fact), use_container_width=True)
 
     with tab_sku:
+        st.caption(
+            "**看什麼**：單顆料號的毛利貢獻排行（由高到低）。最上面幾顆是金牛，"
+            "要保護產能與交期；拉到最下面看毛利貢獻墊底甚至為負的料號——"
+            "該漲價、該 cost-down、還是該 EOL，逐顆檢討。"
+        )
         product_df = by_product(fact).sort_values("gross_profit_usd", ascending=False)
         st.dataframe(product_df, use_container_width=True, height=500)
 
