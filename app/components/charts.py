@@ -202,6 +202,7 @@ def margin_distribution(
     df: pd.DataFrame,
     group_col: str = "product_family",
     color_map: dict[str, str] | None = None,
+    hover_name: str | None = None,
 ) -> go.Figure:
     color_map = color_map or FAMILY_COLORS
     fig = px.box(
@@ -211,9 +212,14 @@ def margin_distribution(
         color=group_col,
         color_discrete_map=color_map,
         category_orders={group_col: list(color_map)},
-        points=False,
+        # All points jittered beside the box: points=False would hide values
+        # beyond the whiskers entirely — exactly the problem SKUs this chart
+        # exists to surface.
+        points="all",
+        hover_name=hover_name,
         height=420,
     )
+    fig.update_traces(jitter=0.4, pointpos=-1.8, marker=dict(size=5, opacity=0.55))
     fig.update_layout(
         showlegend=False,
         yaxis_title="毛利率 % / Gross Margin %",

@@ -21,11 +21,13 @@ def render_product(fact: pd.DataFrame) -> None:
     )
 
     if mode.startswith("箱型圖"):
-        # Raw data on purpose — the box's whiskers already summarise spread,
-        # and hiding outlier products here would hide real problem SKUs.
+        # Raw data on purpose — no IQR trimming here, so problem SKUs beyond
+        # the whiskers stay visible as points.
         st.plotly_chart(
-            margin_distribution(by_product(fact)), use_container_width=True
+            margin_distribution(by_product(fact), hover_name="product_id"),
+            use_container_width=True,
         )
+        st.caption("每一點＝一顆料號（游標可見料號）；箱外的點就是該系列的離群 SKU。")
     else:
         # Tukey fence per family: an extreme margin for a volatile family
         # may be normal for another, so fences are group-wise.

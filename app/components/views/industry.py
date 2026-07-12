@@ -25,12 +25,18 @@ def render_industry(fact: pd.DataFrame) -> None:
     )
 
     if mode.startswith("箱型圖"):
-        # Raw customer-level data (one box point per customer) — no outlier
+        # Raw customer-level data (one point per customer) — no outlier
         # trimming for box plots.
         st.plotly_chart(
-            margin_distribution(by_customer(fact), group_col="industry", color_map=INDUSTRY_COLORS),
+            margin_distribution(
+                by_customer(fact),
+                group_col="industry",
+                color_map=INDUSTRY_COLORS,
+                hover_name="customer_name",
+            ),
             use_container_width=True,
         )
+        st.caption("每一點＝一家客戶（游標可見客戶名）；箱外的點就是該產業的離群客戶。")
     else:
         cleaned = iqr_filter(fact, "gross_margin_pct", group_col="industry")
         st.plotly_chart(

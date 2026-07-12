@@ -234,3 +234,6 @@ logs/
 
 # Personal interview-prep notes — never push where the interviewer can read them
 docs/interview-prep.md
+app/components/charts.py
+app/components/views/industry.py
+app/components/views/product.py
