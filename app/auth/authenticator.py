@@ -98,6 +98,12 @@ def current_user() -> tuple[str, str, list[str]]:
     name = st.session_state.get("name", username)
     config = st.session_state.get("_auth_config", {})
     user_record = config.get("credentials", {}).get("usernames", {}).get(username, {})
+    if username and not user_record:
+        # The auth cookie outlived the account (deactivated / deleted):
+        # streamlit-authenticator restores the session from the JWT without
+        # re-checking the credential source, so revoke it here.
+        get_authenticator().logout(location="unrendered")
+        st.rerun()
     roles = user_record.get("roles", ["viewer"])
     st.session_state["role"] = roles[0] if roles else "viewer"
     st.session_state["roles"] = roles
