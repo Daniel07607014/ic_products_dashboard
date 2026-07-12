@@ -231,3 +231,6 @@ config/auth_config.yaml
 deploy/nginx/certs/*
 !deploy/nginx/certs/.gitkeep
 logs/
+
+# Personal interview-prep notes — never push where the interviewer can read them
+docs/interview-prep.md

@@ -20,11 +20,13 @@
 ## 二、功能補完 (code 內留的 TODO)
 
 ### `src/analytics/trend_analysis.py`
-- [ ] **PVM 三因子拆解** — `pvm_decomposition()` 目前只回傳 revenue/profit 前後期總和，需補：
-  - Price effect  = Σ (P1 − P0) × Q1
-  - Volume effect = Σ (Q1 − Q0) × P0
-  - Mix effect    = residual
-- [ ] 在「業績分析 · 趨勢分析」tab (`app/components/views/trend.py`) 畫出 PVM 瀑布圖 (Plotly Waterfall)
+- [x] **PVM 拆解**（2026-07-12，實作為價/成本/量/組合**四因子**——成本效果從價格中分離：
+  price = Σ(P1−P0)×Q1、cost = −Σ(C1−C0)×Q1、volume = Σ(Q1−Q0)×m0（common SKU、
+  加權平均單價/單位成本）、mix = 殘差＝新進/退出料號貢獻；四項加總恆等於 ΔGP，
+  tests/test_trend.py 有各因子隔離測試與恆等式測試。注意：單月 vs 單月比較時
+  很多料號當月無訂單，mix 會偏大——demo 敘事時說明這點）
+- [x] 在「趨勢分析」頁畫出 PVM 瀑布圖（2026-07-12，Plotly Waterfall +
+  基期/當期月份選擇，`charts.pvm_waterfall`）
 
 ### `app/components/views/product.py` (業績分析 · 產品維度)
 - [ ] 加入「單一料號 drill-down」：選一顆 IC → 顯示該產品的
@@ -63,22 +65,21 @@
 原理：Tailscale 在最外層用受信任憑證處理 TLS，內層 nginx 的 self-signed 憑證
 瀏覽器永遠看不到，Docker 架構完全不用改。
 
-- [ ] 1. 安裝並登入 Tailscale：[tailscale.com/download](https://tailscale.com/download)
-  裝 Windows 版，用 Google/GitHub 帳號登入（免費方案即可）
-- [ ] 2. 開啟 HTTPS 憑證（一次性）：[login.tailscale.com](https://login.tailscale.com)
-  → DNS 頁 → 確認 **MagicDNS** 開啟 → 點 **Enable HTTPS Certificates**
-  （此頁會顯示 tailnet 名稱，形如 `tail1234.ts.net`）
-- [ ] 3. 掛上 dashboard（PowerShell）：
+- [x] 1. 安裝並登入 Tailscale（2026-07-12；CLI 在 `C:\Program Files\Tailscale\tailscale.exe`，
+  舊終端機視窗吃不到 PATH 要用完整路徑）
+- [x] 2. 開啟 HTTPS 憑證（2026-07-12；tailnet = `taile767b8.ts.net`）
+- [x] 3. 掛上 dashboard（2026-07-12）：
   ```powershell
   tailscale serve --bg https+insecure://localhost:443
   ```
   （`+insecure` = 不驗證內層 nginx 的 self-signed 憑證，這段只在本機內部；
-  `--bg` 常駐、重開機仍在）
-- [ ] 4. 取得網址：`tailscale serve status` → 形如 `https://電腦名.tail1234.ts.net`，
-  憑證由 Tailscale 自動續期
+  `--bg` 常駐、重開機仍在。關閉：`tailscale serve --https=443 off`）
+- [x] 4. 網址：**https://ic-product-dashboard.taile767b8.ts.net**（tailnet only，
+  憑證由 Tailscale 自動續期；`/_stcore/health` 已驗回 200。機器名用
+  `tailscale set --hostname ic-product-dashboard` 改過——DNS 不允許底線，故用連字號）
 - [ ] 5. 分享：管理後台 → Users → **Invite users**（免費可邀 3 人），
   對方裝 Tailscale 接受邀請後用同一網址；未受邀者完全掃不到這台機器
-- [ ] 6. 驗收：開網址應見登入頁顯示 `Version: 1.0.0`、瀏覽器鎖頭無警告
+- [ ] 6. 驗收：開網址應見登入頁顯示版本號、瀏覽器鎖頭無警告（使用者自己開瀏覽器確認）
 
 ---
 
