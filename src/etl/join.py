@@ -29,22 +29,39 @@ def build_fact_table(
     sales = add_period_column(sales)
     costs = fill_yield_rate(costs)
 
+    # validate="many_to_one": a duplicate key on the right side would fan out
+    # sales rows and double-count revenue — fail at the join, not in the sums.
     fact = sales.merge(
         costs[["product_id", "period", "unit_cost_usd", "yield_rate"]],
         on=["product_id", "period"],
         how="left",
+        validate="many_to_one",
     )
+
+    missing = fact["unit_cost_usd"].isna()
+    if missing.any():
+        # A silent NaN here drops COGS from aggregates while revenue stays in,
+        # overstating margin with no visible error — fail loudly instead.
+        sample = (
+            fact.loc[missing, ["product_id", "period"]].drop_duplicates().head(5).to_dict("records")
+        )
+        raise ValueError(
+            f"{int(missing.sum())} sales rows have no matching cost record "
+            f"(join key: product_id × period); sample keys: {sample}"
+        )
 
     fact = fact.merge(
         products[["product_id", "product_family", "process_node", "package_type", "product_status"]],
         on="product_id",
         how="left",
+        validate="many_to_one",
     )
 
     fact = fact.merge(
         customers[["customer_id", "customer_name", "customer_tier", "industry", "country"]],
         on="customer_id",
         how="left",
+        validate="many_to_one",
     )
 
     fact["cogs_usd"] = fact["unit_cost_usd"] * fact["quantity"]
