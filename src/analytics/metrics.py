@@ -28,6 +28,16 @@ def unit_gross_profit(unit_price: float | pd.Series, unit_cost: float | pd.Serie
     return unit_price - unit_cost
 
 
+def margin_pct_of(gross_profit: pd.Series, revenue: pd.Series) -> pd.Series:
+    """Margin % for aggregated rows: profit ÷ revenue × 100.
+
+    Zero-revenue rows get 0.0 (not ±inf/NaN) so sorts and threshold filters
+    stay stable. Every grouped margin derivation should go through here so
+    the zero-revenue policy lives in exactly one place.
+    """
+    return (gross_profit / revenue.where(revenue > 0) * 100).fillna(0.0)
+
+
 def weighted_avg_margin(fact: pd.DataFrame) -> float:
     """Revenue-weighted average gross-margin percentage.
 
@@ -42,7 +52,12 @@ def weighted_avg_margin(fact: pd.DataFrame) -> float:
 
 
 def effective_cost(raw_cost: float | pd.Series, yield_rate: float | pd.Series) -> float | pd.Series:
-    """Cost adjusted for yield loss: a die with 80% yield effectively costs 25% more."""
+    """Cost adjusted for yield loss: a die with 80% yield effectively costs 25% more.
+
+    Only for *raw* component costs — ``unit_cost_usd`` in the fact table is
+    already yield-adjusted at the source, so applying this to it would
+    double-count the yield loss.
+    """
     return raw_cost / yield_rate
 
 

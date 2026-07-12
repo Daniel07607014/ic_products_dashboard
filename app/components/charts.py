@@ -145,6 +145,43 @@ def growth_bars(monthly: pd.DataFrame, col: str, title: str) -> go.Figure:
     return fig
 
 
+def pvm_waterfall(pvm: dict[str, float], base_label: str, curr_label: str) -> go.Figure:
+    """Gross-profit PVM waterfall: two absolute anchors + four signed effects.
+
+    Polarity colors match growth_bars (green up / red down); the anchors use
+    the recessive revenue-bar blue so the effects stay visually dominant.
+    """
+    effects = [
+        ("價格 / Price", pvm["price_effect"]),
+        ("成本 / Cost", pvm["cost_effect"]),
+        ("數量 / Volume", pvm["volume_effect"]),
+        ("組合 / Mix", pvm["mix_effect"]),
+    ]
+    x = [f"{base_label}<br>期初毛利"] + [name for name, _ in effects] + [f"{curr_label}<br>期末毛利"]
+    y = [pvm["gross_profit_prev"]] + [v for _, v in effects] + [pvm["gross_profit_curr"]]
+    fig = go.Figure(
+        go.Waterfall(
+            x=x,
+            y=y,
+            measure=["absolute", "relative", "relative", "relative", "relative", "total"],
+            text=[f"${v:,.0f}" for v in y],
+            textposition="outside",
+            increasing=dict(marker_color="#0ca30c"),
+            decreasing=dict(marker_color="#d03b3b"),
+            totals=dict(marker_color="#9ec5f4"),
+            connector=dict(line=dict(color="#c3c2b7", width=1)),
+        )
+    )
+    fig.update_layout(
+        yaxis_title="毛利 (USD) / Gross profit",
+        showlegend=False,
+        height=440,
+        # Outside-positioned labels on the tallest bar need headroom.
+        margin=dict(t=48),
+    )
+    return fig
+
+
 def top_products_bar(top_df: pd.DataFrame, value_col: str = "gross_profit_usd") -> go.Figure:
     fig = px.bar(
         top_df.sort_values(value_col),

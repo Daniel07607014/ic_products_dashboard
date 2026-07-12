@@ -1,7 +1,10 @@
 """Top-N and Pareto/ABC ranking helpers."""
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
+
+from src.analytics.metrics import margin_pct_of
 
 
 def top_n_products(fact: pd.DataFrame, n: int = 10, by: str = "gross_profit_usd") -> pd.DataFrame:
@@ -9,9 +12,7 @@ def top_n_products(fact: pd.DataFrame, n: int = 10, by: str = "gross_profit_usd"
         revenue_usd=("revenue_usd", "sum"),
         gross_profit_usd=("gross_profit_usd", "sum"),
     ).reset_index()
-    grouped["gross_margin_pct"] = (
-        grouped["gross_profit_usd"] / grouped["revenue_usd"].where(grouped["revenue_usd"] > 0) * 100
-    ).fillna(0.0)
+    grouped["gross_margin_pct"] = margin_pct_of(grouped["gross_profit_usd"], grouped["revenue_usd"])
     return grouped.sort_values(by, ascending=False).head(n).reset_index(drop=True)
 
 
@@ -20,32 +21,27 @@ def bottom_n_products(fact: pd.DataFrame, n: int = 10, by: str = "gross_margin_p
         revenue_usd=("revenue_usd", "sum"),
         gross_profit_usd=("gross_profit_usd", "sum"),
     ).reset_index()
-    grouped["gross_margin_pct"] = (
-        grouped["gross_profit_usd"] / grouped["revenue_usd"].where(grouped["revenue_usd"] > 0) * 100
-    ).fillna(0.0)
+    grouped["gross_margin_pct"] = margin_pct_of(grouped["gross_profit_usd"], grouped["revenue_usd"])
     return grouped.sort_values(by, ascending=True).head(n).reset_index(drop=True)
 
 
 def abc_analysis(fact: pd.DataFrame, dimension: str = "product_id") -> pd.DataFrame:
     """Pareto (80/20) classification.
 
-    A = top items contributing to 80% of revenue
-    B = next 15% (up to 95%)
+    A = items up to *and including* the one that crosses 80% cumulative revenue
+    B = up to and including the 95% crossing
     C = remaining tail
     """
     grouped = fact.groupby(dimension, dropna=False)["revenue_usd"].sum().reset_index()
     grouped = grouped.sort_values("revenue_usd", ascending=False).reset_index(drop=True)
     total = grouped["revenue_usd"].sum()
-    grouped["cum_pct"] = grouped["revenue_usd"].cumsum() / total * 100
+    grouped["cum_pct"] = grouped["revenue_usd"].cumsum() / total * 100 if total > 0 else 0.0
 
-    def classify(pct: float) -> str:
-        if pct <= 80:
-            return "A"
-        if pct <= 95:
-            return "B"
-        return "C"
-
-    grouped["abc_class"] = grouped["cum_pct"].apply(classify)
+    # Classify by where the item *starts* (cumulative share before it), so the
+    # boundary-crossing item belongs to the class it completes — otherwise a
+    # single customer carrying 100% of revenue would land in C.
+    prev_cum = grouped["cum_pct"].shift(fill_value=0.0)
+    grouped["abc_class"] = np.select([prev_cum < 80, prev_cum < 95], ["A", "B"], default="C")
     return grouped
 
 

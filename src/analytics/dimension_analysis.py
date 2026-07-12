@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from src.analytics.metrics import weighted_avg_margin
+from src.analytics.metrics import margin_pct_of
 
 
 def _agg(fact: pd.DataFrame, by: list[str]) -> pd.DataFrame:
@@ -14,9 +14,7 @@ def _agg(fact: pd.DataFrame, by: list[str]) -> pd.DataFrame:
         quantity=("quantity", "sum"),
         order_count=("order_id", "nunique"),
     ).reset_index()
-    grouped["gross_margin_pct"] = (
-        grouped["gross_profit_usd"] / grouped["revenue_usd"].where(grouped["revenue_usd"] > 0) * 100
-    ).fillna(0.0)
+    grouped["gross_margin_pct"] = margin_pct_of(grouped["gross_profit_usd"], grouped["revenue_usd"])
     return grouped
 
 
@@ -58,7 +56,9 @@ def product_customer_matrix(
             index="product_family", columns=columns,
             values="gross_profit_usd", aggfunc="sum",
         )
-        return (profit / revenue.where(revenue > 0) * 100).fillna(0.0)
+        # Keep NaN for cells with no transactions: "no data" is not "0% margin",
+        # and plotly leaves NaN cells blank instead of painting a fake break-even.
+        return profit / revenue.where(revenue > 0) * 100
     return fact.pivot_table(
         index="product_family", columns=columns, values=value, aggfunc="sum",
     )

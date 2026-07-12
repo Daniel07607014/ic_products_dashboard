@@ -22,6 +22,10 @@ def render_cost(raw_tables: dict[str, pd.DataFrame]) -> None:
     ].mean().reset_index()
     long = family_avg.melt(id_vars="product_family", var_name="cost_type", value_name="usd")
     st.plotly_chart(cost_composition_bar(long), use_container_width=True)
+    st.caption(
+        "五項為**未含良率損耗**的原始成本；實際單位成本 = 原始成本合計 ÷ 良率，"
+        "故本圖堆疊高度會略低於下方散布圖的 unit cost。"
+    )
 
     st.markdown("### 良率 vs 單位成本 / Yield vs unit cost")
     plot_df = latest.copy()

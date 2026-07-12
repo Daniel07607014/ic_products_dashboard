@@ -6,6 +6,7 @@ from __future__ import annotations
 import pandas as pd
 
 from src.analytics.dimension_analysis import by_customer, by_product
+from src.analytics.metrics import margin_pct_of
 
 
 def low_margin_products(fact: pd.DataFrame, threshold_pct: float = 10.0) -> pd.DataFrame:
@@ -24,7 +25,7 @@ def _margin_by_product(fact: pd.DataFrame, periods: list[str]) -> pd.Series:
         revenue_usd=("revenue_usd", "sum"),
         gross_profit_usd=("gross_profit_usd", "sum"),
     )
-    return (grouped["gross_profit_usd"] / grouped["revenue_usd"].where(grouped["revenue_usd"] > 0) * 100).fillna(0.0)
+    return margin_pct_of(grouped["gross_profit_usd"], grouped["revenue_usd"])
 
 
 def declining_margin_products(
@@ -66,7 +67,5 @@ def npi_health(fact: pd.DataFrame) -> pd.DataFrame:
         gross_profit_usd=("gross_profit_usd", "sum"),
         avg_yield_rate=("yield_rate", "mean"),
     ).reset_index()
-    grouped["gross_margin_pct"] = (
-        grouped["gross_profit_usd"] / grouped["revenue_usd"].where(grouped["revenue_usd"] > 0) * 100
-    ).fillna(0.0)
+    grouped["gross_margin_pct"] = margin_pct_of(grouped["gross_profit_usd"], grouped["revenue_usd"])
     return grouped[columns].sort_values("gross_margin_pct").reset_index(drop=True)

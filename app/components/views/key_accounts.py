@@ -20,18 +20,28 @@ def render_key_accounts(fact: pd.DataFrame) -> None:
     )
     st.plotly_chart(customer_pareto_curve(abc), use_container_width=True)
     n_a = int((abc["abc_class"] == "A").sum())
+    total_rev = abc["revenue_usd"].sum()
+    a_share = (
+        abc.loc[abc["abc_class"] == "A", "revenue_usd"].sum() / total_rev * 100
+        if total_rev > 0 else 0.0
+    )
     st.caption(
-        f"前 {n_a} 家客戶貢獻了 80% 營收——這就是「A 級」的定義依據。"
+        f"前 {n_a} 家客戶貢獻了 {a_share:.0f}% 營收"
+        f"（Pareto A 級＝累積營收達 80% 為止、含跨越門檻的那一家）。"
         f"曲線越陡＝依賴越集中，任一家 A 級流失的衝擊越大。"
     )
 
     st.markdown("### 單一客戶檢視 / Account drill-down")
-    show_all = st.toggle("顯示全部客戶（含 B/C 級）/ Show all tiers", value=False)
+    show_all = st.toggle("顯示全部客戶 / Show all customers", value=False)
+    st.caption(
+        "預設僅列**客戶主檔**分級為 A 的客戶（業務指定的策略分級）——"
+        "與上方由營收推導的 Pareto A 級是兩套不同的定義，重疊度本身就是個管理訊號。"
+    )
     ordered = customers.sort_values("revenue_usd", ascending=False)
     if not show_all:
         ordered = ordered[ordered["customer_tier"] == "A"]
     if ordered.empty:
-        st.info("目前篩選條件下沒有 A 級客戶 / No A-tier customers under current filters.")
+        st.info("目前篩選條件下沒有主檔 A 級客戶 / No A-tier customers under current filters.")
         return
     target = st.selectbox(
         "選擇客戶（依營收排序）/ Customer",
