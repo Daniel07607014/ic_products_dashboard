@@ -3,7 +3,7 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from app.components.charts import customer_pareto_curve, revenue_margin_trend
+from app.components.charts import INDUSTRY_ZH, customer_pareto_curve, revenue_margin_trend
 from src.analytics.dimension_analysis import by_customer, by_product
 from src.analytics.ranking import abc_analysis
 from src.analytics.trend_analysis import monthly_trend
@@ -60,7 +60,8 @@ def render_key_accounts(fact: pd.DataFrame) -> None:
     c2.metric("佔總營收 / Share", f"{share:.1f}%")
     c3.metric("毛利率 / GM%", f"{row['gross_margin_pct']:.1f}%")
     c4.metric("分級 / Tier", str(row["customer_tier"]))
-    c5.metric("產業 / Industry", str(row["industry"]))
+    industry = str(row["industry"])
+    c5.metric("產業 / Industry", INDUSTRY_ZH.get(industry, industry), help=industry)
 
     account_fact = fact[fact["customer_id"] == target]
     st.markdown("**月度營收與毛利率 / Monthly revenue & GM%**")

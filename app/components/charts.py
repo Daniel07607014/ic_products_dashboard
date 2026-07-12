@@ -17,6 +17,15 @@ FAMILY_COLORS: dict[str, str] = dict(zip(PRODUCT_FAMILIES, _FAMILY_SLOTS))
 # assigned in the fixed settings.INDUSTRIES order.
 INDUSTRY_COLORS: dict[str, str] = dict(zip(INDUSTRIES, _FAMILY_SLOTS[:4]))
 
+# Short display names for narrow UI slots (st.metric truncates long values);
+# data keeps the English values everywhere.
+INDUSTRY_ZH: dict[str, str] = {
+    "Consumer": "消費性",
+    "Industrial": "工業",
+    "Automotive": "車用",
+    "Communication": "通訊",
+}
+
 # Status red for threshold lines — reserved, never used as a series color.
 CRITICAL_COLOR = "#d03b3b"
 
